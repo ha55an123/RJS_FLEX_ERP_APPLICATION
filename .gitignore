@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+
+# Environment
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Database
+*.db
+*.sqlite3
+
+# Build
+dist/
+build/
+
+# Docker
+*.tar
+
+# PDF/Reports (if generated)
+generated_pdfs/
+exports/
+
+# Uploads
+uploads/
+media/
+
+# Cache
+.cache/
+.pytest_cache/
+
+# Node (if frontend exists)
+node_modules/
+
+# Coverage
+.coverage
+htmlcov/
+*.zip

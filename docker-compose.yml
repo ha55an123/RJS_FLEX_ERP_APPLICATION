@@ -1,0 +1,37 @@
+services:
+  erp-postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: "12345"
+      POSTGRES_DB: erp_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d erp_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  erp-backend:
+    build: ./erp-backend
+    restart: unless-stopped
+    depends_on:
+      erp-postgres:
+        condition: service_healthy
+    env_file:
+      - ./erp-backend/.env
+    ports:
+      - "9000:8000"
+
+  erp-frontend:
+    build: ./erp-frontend
+    restart: unless-stopped
+    depends_on:
+      - erp-backend
+    ports:
+      - "3000:80"
+
+volumes:
+  pgdata:

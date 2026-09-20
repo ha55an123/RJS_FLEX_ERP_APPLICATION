@@ -9,10 +9,8 @@ class Invoice(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     invoice_number = Column(String, unique=True, index=True)
-    order_id = Column(Integer, ForeignKey("orders.id"))
+    order_id = Column(Integer, nullable=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     total_amount = Column(Float)
     status = Column(String, default="unpaid")
     created_at = Column(DateTime, default=datetime.utcnow)
-
-    order = relationship("Order")

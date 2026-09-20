@@ -285,6 +285,15 @@ def generate_invoice_pdf(
     story.append(Spacer(1, 20))
 
     ###########################################################
+    # NON-REFUNDABLE NOTICE
+    ###########################################################
+
+    non_refundable_style = styles["Heading3"]
+    non_refundable_style.alignment = TA_CENTER
+    story.append(Paragraph("<b>ALL FUNDS ARE NON REFUNDABLE</b>", non_refundable_style))
+    story.append(Spacer(1, 15))
+
+    ###########################################################
     # FOOTER
     ###########################################################
 

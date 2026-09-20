@@ -4,11 +4,17 @@ import { getEmployees } from '../api/employees';
 import { PlusCircle, Pencil, Trash2, UserCog, RefreshCw } from 'lucide-react';
 import Toast from '../components/Toast';
 
-const ROLES = ['admin', 'company_manager', 'outlet_staff'];
-const ROLE_COLOR = { admin: '#4f46e5', company_manager: '#0891b2', outlet_staff: '#059669' };
+const ROLES = [
+  'super_admin', 'gym_owner', 'manager', 'receptionist',
+  'trainer', 'accountant', 'member',
+];
+const ROLE_COLOR = {
+  super_admin: '#eab308', gym_owner: '#f59e0b', manager: '#0891b2',
+  receptionist: '#059669', trainer: '#7c3aed', accountant: '#0284c7', member: '#64748b',
+};
 
 const EMPTY_FORM = {
-  username: '', email: '', password: '', role: 'outlet_staff',
+  username: '', email: '', password: '', role: 'receptionist',
   employee_id: '', is_active: true,
 };
 
@@ -56,11 +62,15 @@ function UserModal({ user, employees, onClose, onSave }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px' }}>
-        <h3>{editing ? 'Edit App User' : 'Add App User'}</h3>
+    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="user-modal-title">
+      <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px' }}>
+        <div className="modal-header">
+          <h2 id="user-modal-title">{editing ? 'Edit App User' : 'Add App User'}</h2>
+          <button onClick={onClose} className="icon-btn" aria-label="Close user modal">×</button>
+        </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="modal-form">
+          <div className="modal-body">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 1rem' }}>
             <Field label="Username *">
               <input style={inputStyle} value={form.username} onChange={set('username')} required placeholder="john_doe" />
@@ -96,9 +106,9 @@ function UserModal({ user, employees, onClose, onSave }) {
             )}
           </div>
 
-          {error && <p className="auth-error">{error}</p>}
-
-          <div className="modal-actions" style={{ marginTop: '1rem' }}>
+            {error && <p className="auth-error">{error}</p>}
+          </div>
+          <div className="modal-footer" style={{ marginTop: '1rem' }}>
             <button type="button" className="btn-ghost" onClick={onClose}>Cancel</button>
             <button type="submit" className="btn-primary" disabled={loading}>
               {loading ? 'Saving…' : editing ? 'Save Changes' : 'Add User'}

@@ -8,12 +8,12 @@ import io, csv, os, shutil, uuid
 
 from app.core.database import get_db
 from app.core.auth_dependencies import require_role
-from app.models.accounting import DailyExpense, Ledger
+from app.models.accounting import DailyExpense, Ledger, LedgerType
 from app.schemas.accounting import ExpenseCreate, ExpenseUpdate, ExpenseOut
 
 router = APIRouter(prefix="/expenses", tags=["Daily Expenses"])
 
-ADMIN_MANAGER = ["admin", "company_manager"]
+ADMIN_MANAGER = ["super_admin", "admin", "company_manager", "gym_owner"]
 UPLOAD_DIR = "uploads/expenses"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 

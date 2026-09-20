@@ -1,41 +1,113 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import { jwtDecode } from '../utils/jwt';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import api from '../api/axios';
+import {
+  getAccessToken,
+  getRefreshToken,
+  setTokens,
+  clearAuthStorage,
+  isTokenExpired,
+  userFromToken,
+} from '../utils/authStorage';
+import { registerSessionInvalidHandler } from '../utils/authEvents';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      try {
-        const decoded = jwtDecode(token);
-        // Force re-login if token missing name field
-        if (!decoded.name) {
-          localStorage.clear();
-        } else {
-          setUser(decoded);
-        }
-      } catch {
-        localStorage.clear();
-      }
-    }
+  const [initializing, setInitializing] = useState(true);
+  const applyAccessToken = useCallback((accessToken) => {
+    setTokens(accessToken, getRefreshToken());
+    setUser(userFromToken(accessToken));
   }, []);
 
-  const signin = (access_token, refresh_token) => {
-    localStorage.setItem('access_token', access_token);
-    localStorage.setItem('refresh_token', refresh_token);
-    setUser(jwtDecode(access_token));
+  const refreshAccessToken = useCallback(async () => {
+    const refreshToken = getRefreshToken();
+    if (!refreshToken) {
+      throw new Error('Missing refresh token');
+    }
+
+    const { data } = await api.post('/auth/refresh', null, {
+      params: { token: refreshToken },
+    });
+    applyAccessToken(data.access_token);
+    return data.access_token;
+  }, [applyAccessToken]);
+
+  const restoreSession = useCallback(async () => {
+    const accessToken = getAccessToken();
+    const refreshToken = getRefreshToken();
+
+    if (!accessToken && !refreshToken) {
+      setUser(null);
+      return false;
+    }
+
+    if (accessToken && !isTokenExpired(accessToken)) {
+      setUser(userFromToken(accessToken));
+      try {
+        await api.get('/auth/me');
+        return true;
+      } catch (err) {
+        if (!err.response) {
+          return true;
+        }
+        if (err.response.status !== 401 || !refreshToken) {
+          if (err.response.status === 401) {
+            clearAuthStorage();
+            setUser(null);
+          }
+          return false;
+        }
+      }
+    }
+
+    if (!refreshToken) {
+      clearAuthStorage();
+      setUser(null);
+      return false;
+    }
+
+    try {
+      await refreshAccessToken();
+      await api.get('/auth/me');
+      return true;
+    } catch {
+      clearAuthStorage();
+      setUser(null);
+      return false;
+    }
+  }, [refreshAccessToken]);
+
+  useEffect(() => {
+    let active = true;
+
+    registerSessionInvalidHandler(() => {
+      clearAuthStorage();
+      setUser(null);
+    });
+
+    restoreSession().finally(() => {
+      if (active) setInitializing(false);
+    });
+
+    return () => {
+      active = false;
+      registerSessionInvalidHandler(null);
+    };
+  }, [restoreSession]);
+
+  const signin = (accessToken, refreshToken) => {
+    setTokens(accessToken, refreshToken);
+    setUser(userFromToken(accessToken));
   };
 
   const signout = () => {
-    localStorage.clear();
+    clearAuthStorage();
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, signin, signout }}>
+    <AuthContext.Provider value={{ user, initializing, signin, signout, refreshAccessToken, applyAccessToken }}>
       {children}
     </AuthContext.Provider>
   );

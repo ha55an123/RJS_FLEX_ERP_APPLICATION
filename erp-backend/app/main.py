@@ -1,66 +1,74 @@
-import subprocess
-from pathlib import Path
-
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 from app.core.database import engine, Base
 
-# Import all models so Base knows about them
-from app.models import user, otp, device, audit_log, inventory, order, invoice, purchase, outlet, attendance_payroll, production_payroll
+# ── Core / preserved models ──────────────────────────────────────────────────
+from app.models import (
+    user, otp, device, audit_log, order, invoice,
+    purchase, attendance_payroll, production_payroll,
+    accounting,
+)
 from app.models import employee  # noqa: F401
-from app.models import accounting  # noqa: F401
 
+# ── New Gym models ────────────────────────────────────────────────────────────
+from app.models import branch          # noqa: F401
+from app.models import gym_member      # noqa: F401
+from app.models import gym_staff       # noqa: F401
+from app.models import membership      # noqa: F401
+from app.models import gym_attendance  # noqa: F401
+from app.models import biometric_device  # noqa: F401
+from app.models import workout         # noqa: F401
+from app.models import diet            # noqa: F401
+from app.models import gym_equipment   # noqa: F401
+from app.models import gym_inventory   # noqa: F401
+from app.models import gym_payment     # noqa: F401
+from app.models import discount        # noqa: F401
+from app.models import face_biometric  # noqa: F401
+
+# ── Preserved routers ─────────────────────────────────────────────────────────
 from app.routers import (
     auth,
-    dashboard,
-    inventory as inv_router,
-    order as order_router,
-    invoice as inv_bill_router,
-    employees,
     users,
-    purchases,
-    outlets,
-    attendance_payroll,
+    employees,
     ledgers,
     expenses,
     utility_bills,
     purchase_requests,
-    production_payroll,
+    attendance_payroll as att_payroll_router,
+    production_payroll as prod_payroll_router,
+    purchases,
+    invoice as inv_bill_router,
 )
-from app.core.seed_data import seed_production_payroll_demo_data
-from app.core.database import SessionLocal
 
-def _run_migrations() -> None:
-    project_root = Path(__file__).resolve().parents[1]
-    try:
-        result = subprocess.run(
-            ["alembic", "upgrade", "heads"],
-            cwd=project_root,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if result.returncode != 0:
-            stderr = (result.stderr or result.stdout or "").strip()
-            # If multiple heads exist in the repo, upgrade can fail; DB may already be migrated.
-            print(f"[MIGRATIONS] alembic upgrade heads failed: {stderr}")
-        else:
-            print("[MIGRATIONS] alembic upgrade heads completed")
+# ── New Gym routers ───────────────────────────────────────────────────────────
+from app.routers.gym import (
+    dashboard as gym_dashboard,
+    branches,
+    members,
+    memberships,
+    gym_staff as staff_router,
+    gym_attendance as attendance_router,
+    biometric_devices,
+    workouts,
+    diet as diet_router,
+    equipment,
+    gym_inventory as inventory_router,
+    gym_payments,
+    discounts,
+    reports,
+    face_biometrics,
+)
 
-
-    except Exception as exc:
-        print(f"[MIGRATIONS] could not run alembic upgrade head: {exc}")
-
-
-# try:
-#     _run_migrations()
-# except Exception as exc:
-#     print(f"[MIGRATIONS] migration startup hook failed: {exc}")
-#     Base.metadata.create_all(bind=engine)
 Base.metadata.create_all(bind=engine)
 
-# Auto-patch: add otp_type column to user_otps if it doesn't exist yet
-# (handles existing DBs that were created before this column was added)
+
 def _apply_patches():
     from sqlalchemy import text
     with engine.connect() as conn:
@@ -72,26 +80,40 @@ def _apply_patches():
         except Exception:
             conn.rollback()
 
+
 try:
     _apply_patches()
 except Exception as e:
     print(f"[PATCH] Could not apply DB patches: {e}")
 
 
-def _seed_production_payroll_demo_data():
+def _init_admin_user():
+    from app.core.database import SessionLocal
+    from app.core.init_admin import create_default_admin
+    db = SessionLocal()
     try:
-        with SessionLocal() as db:
-            counts = seed_production_payroll_demo_data(db)
-            print(f"[SEED] production payroll demo data seeded: {counts}")
-    except Exception as exc:
-        print(f"[SEED] could not seed production payroll demo data: {exc}")
+        create_default_admin(db)
+    except Exception as e:
+        print(f"[ADMIN] Could not create admin user: {e}")
+    finally:
+        db.close()
 
 
-# _seed_production_payroll_demo_data()
+try:
+    _init_admin_user()
+except Exception as e:
+    print(f"[ADMIN] Admin initialization failed: {e}")
 
-app = FastAPI(title="Forest ERP", version="1.0.0")
 
-# CORS must be registered before routers
+app = FastAPI(
+    title="Gym ERP",
+    version="2.0.0",
+    description="Enterprise Gym ERP Management System",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+    openapi_url="/api/openapi.json",
+)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -100,23 +122,52 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    logger.error(f"Validation error on {request.method} {request.url}: {exc.errors()}")
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": exc.errors()},
+    )
+
+# ── Preserved routes (keep existing paths intact) ────────────────────────────
 app.include_router(auth.router)
-app.include_router(dashboard.router)
-app.include_router(inv_router.router)
-app.include_router(order_router.router)
-app.include_router(inv_bill_router.router)
-app.include_router(employees.router)
 app.include_router(users.router)
-app.include_router(purchases.router)
-app.include_router(outlets.router)
-app.include_router(attendance_payroll.router)
+app.include_router(employees.router)
 app.include_router(ledgers.router)
 app.include_router(expenses.router)
 app.include_router(utility_bills.router)
 app.include_router(purchase_requests.router)
-app.include_router(production_payroll.router)
+app.include_router(att_payroll_router.router)
+app.include_router(prod_payroll_router.router)
+app.include_router(purchases.router)
+app.include_router(inv_bill_router.router)
+
+# ── Gym API v1 routes ─────────────────────────────────────────────────────────
+V1 = "/api/v1"
+app.include_router(gym_dashboard.router,   prefix=V1)
+app.include_router(branches.router,        prefix=V1)
+app.include_router(members.router,         prefix=V1)
+app.include_router(memberships.router,     prefix=V1)
+app.include_router(staff_router.router,    prefix=V1)
+app.include_router(attendance_router.router, prefix=V1)
+app.include_router(biometric_devices.router, prefix=V1)
+app.include_router(workouts.router,        prefix=V1)
+app.include_router(diet_router.router,     prefix=V1)
+app.include_router(equipment.router,       prefix=V1)
+app.include_router(inventory_router.router, prefix=V1)
+app.include_router(gym_payments.router,    prefix=V1)
+app.include_router(discounts.router,       prefix=V1)
+app.include_router(reports.router,         prefix=V1)
+app.include_router(face_biometrics.router, prefix=V1)
 
 
 @app.get("/")
 def root():
-    return {"message": "Forest ERP Running", "version": "1.0.0"}
+    return {"message": "Gym ERP Running", "version": "2.0.0"}
+
+
+@app.get("/health")
+def health():
+    return {"status": "healthy"}

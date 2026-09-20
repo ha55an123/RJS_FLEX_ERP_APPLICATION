@@ -64,10 +64,13 @@ def _validate_employee(employee_id: int, user_id: Optional[int], db: Session):
     return emp
 
 
+ADMIN_ROLES = ["super_admin", "admin"]
+
+
 @router.get("/")
 def list_users(
     db: Session = Depends(get_db),
-    _=Depends(require_role(["admin"])),
+    _=Depends(require_role(ADMIN_ROLES)),
 ):
     return [_serialize(u) for u in db.query(User).order_by(User.id).all()]
 
@@ -76,7 +79,7 @@ def list_users(
 def get_user(
     user_id: int,
     db: Session = Depends(get_db),
-    _=Depends(require_role(["admin"])),
+    _=Depends(require_role(ADMIN_ROLES)),
 ):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -88,10 +91,10 @@ def get_user(
 def create_user(
     data: UserCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(["admin"])),
+    current_user: User = Depends(require_role(ADMIN_ROLES)),
 ):
-    # SECURITY: Only admins can create admin accounts — enforced server-side
-    if data.role in _ADMIN_ONLY_ROLES and current_user.role != UserRole.ADMIN:
+    # SECURITY: Only super_admins can create super_admin accounts
+    if data.role == UserRole.SUPER_ADMIN and current_user.role not in (UserRole.SUPER_ADMIN, UserRole.ADMIN):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Only admins can create admin accounts")
 
     if db.query(User).filter(User.username == data.username).first():
@@ -121,14 +124,14 @@ def update_user(
     user_id: int,
     data: UserUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(["admin"])),
+    current_user: User = Depends(require_role(ADMIN_ROLES)),
 ):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(404, "User not found")
 
-    # SECURITY: Prevent privilege escalation — only admins can assign admin role
-    if data.role in _ADMIN_ONLY_ROLES and current_user.role != UserRole.ADMIN:
+    # SECURITY: Prevent privilege escalation
+    if data.role == UserRole.SUPER_ADMIN and current_user.role not in (UserRole.SUPER_ADMIN, UserRole.ADMIN):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Only admins can assign the admin role")
 
     if data.username is not None:
@@ -166,7 +169,7 @@ def update_user(
 def delete_user(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(["admin"])),
+    current_user: User = Depends(require_role(ADMIN_ROLES)),
 ):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:

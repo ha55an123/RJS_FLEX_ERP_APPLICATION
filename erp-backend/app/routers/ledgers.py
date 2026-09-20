@@ -7,13 +7,14 @@ import io, csv
 from datetime import datetime
 
 from app.core.database import get_db
-from app.core.auth_dependencies import get_current_user, require_role
+from app.core.auth_dependencies import get_current_user, require_role, ADMIN_ROLES, MANAGER_ROLES
 from app.models.accounting import Ledger, DailyExpense, UtilityBill, LedgerEntry
 from app.schemas.accounting import LedgerCreate, LedgerUpdate, LedgerOut, LedgerEntryOut
 
 router = APIRouter(prefix="/ledgers", tags=["Ledgers"])
 
-ADMIN_MANAGER = ["admin", "company_manager"]
+# Allow admin, company_manager, gym_owner, super_admin to access ledgers
+ADMIN_MANAGER = ["super_admin", "admin", "company_manager", "gym_owner"]
 
 
 def _next_code(db: Session) -> str:
@@ -45,7 +46,7 @@ def list_ledgers(
 def list_ledger_entries(
     ledger_id: int,
     db: Session = Depends(get_db),
-    _=Depends(require_role(ADMIN_MANAGER)),
+    _=Depends(require_role(ADMIN_ROLES)),
 ):
     ledger = db.query(Ledger).filter(Ledger.id == ledger_id).first()
     if not ledger:
@@ -62,7 +63,7 @@ def list_ledger_entries(
 def create_ledger(
     data: LedgerCreate,
     db: Session = Depends(get_db),
-    user=Depends(require_role(ADMIN_MANAGER)),
+    user=Depends(require_role(ADMIN_ROLES)),
 ):
     if db.query(Ledger).filter(Ledger.ledger_name == data.ledger_name).first():
         raise HTTPException(400, "Ledger name already exists")
@@ -79,7 +80,7 @@ def create_ledger(
 
 
 @router.get("/{ledger_id}", response_model=LedgerOut)
-def get_ledger(ledger_id: int, db: Session = Depends(get_db), _=Depends(require_role(ADMIN_MANAGER))):
+def get_ledger(ledger_id: int, db: Session = Depends(get_db), _=Depends(require_role(ADMIN_ROLES))):
     ledger = db.query(Ledger).filter(Ledger.id == ledger_id).first()
     if not ledger:
         raise HTTPException(404, "Ledger not found")
@@ -91,7 +92,7 @@ def update_ledger(
     ledger_id: int,
     data: LedgerUpdate,
     db: Session = Depends(get_db),
-    _=Depends(require_role(ADMIN_MANAGER)),
+    _=Depends(require_role(ADMIN_ROLES)),
 ):
     ledger = db.query(Ledger).filter(Ledger.id == ledger_id).first()
     if not ledger:
@@ -110,7 +111,7 @@ def update_ledger(
 def delete_ledger(
     ledger_id: int,
     db: Session = Depends(get_db),
-    _=Depends(require_role(["admin"])),
+    _=Depends(require_role(ADMIN_ROLES)),
 ):
     ledger = db.query(Ledger).filter(Ledger.id == ledger_id).first()
     if not ledger:
@@ -127,7 +128,7 @@ def delete_ledger(
 @router.get("/export/csv")
 def export_ledgers_csv(
     db: Session = Depends(get_db),
-    _=Depends(require_role(ADMIN_MANAGER)),
+    _=Depends(require_role(ADMIN_ROLES)),
 ):
     ledgers = db.query(Ledger).order_by(Ledger.id).all()
     output = io.StringIO()

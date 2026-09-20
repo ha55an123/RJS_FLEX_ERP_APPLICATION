@@ -13,7 +13,7 @@ from app.schemas.accounting import UtilityBillCreate, UtilityBillUpdate, Utility
 
 router = APIRouter(prefix="/utility-bills", tags=["Utility Bills"])
 
-ADMIN_MANAGER = ["admin", "company_manager"]
+ADMIN_MANAGER = ["super_admin", "admin", "company_manager", "gym_owner"]
 UPLOAD_DIR = "uploads/utility_bills"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 

@@ -120,7 +120,10 @@ export default function UtilityBillsPage() {
       setSummary(sRes.data);
       setUpcoming(uRes.data);
       setLedgers(lRes.data);
-    } catch {}
+    } catch (err) {
+      console.error('Error loading utility bills data:', err.response?.data?.detail || err.message);
+      setToast({ message: 'Failed to load data. Please check your permissions.', type: 'error' });
+    }
     setLoading(false);
   };
 

@@ -28,7 +28,7 @@ function Bill({ sale, outlet, onClose }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 380 }}>
         <div ref={printRef}>
-          <h2 style={{ textAlign: 'center', marginBottom: 4 }}>Foster Garments</h2>
+          <h2 style={{ textAlign: 'center', marginBottom: 4 }}>RJS Flex Gym</h2>
           <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>{outlet?.name} · {outlet?.location || ''}</p>
           <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
             {new Date(sale.created_at).toLocaleString()}

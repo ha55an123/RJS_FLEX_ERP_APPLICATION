@@ -6,6 +6,7 @@ export default defineConfig({
   server: {
     port: 3000,
     proxy: {
+      '/api':       { target: 'http://localhost:9000', changeOrigin: true },
       '/auth':      { target: 'http://localhost:9000', changeOrigin: true },
       '/dashboard': { target: 'http://localhost:9000', changeOrigin: true },
       '/inventory': { target: 'http://localhost:9000', changeOrigin: true },

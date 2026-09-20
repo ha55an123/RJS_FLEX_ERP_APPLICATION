@@ -15,7 +15,7 @@ from app.schemas.accounting import PurchaseRequestCreate, PurchaseRequestUpdate,
 router = APIRouter(prefix="/purchase-requests", tags=["Purchase Requests"])
 
 ADMIN_MANAGER = ["admin", "company_manager"]
-ALL_ROLES = ["admin", "company_manager", "outlet_staff"]
+ALL_ROLES = ["admin", "company_manager", "receptionist"]
 UPLOAD_DIR = "uploads/purchase_requests"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
@@ -56,7 +56,7 @@ def list_requests(
 ):
     q = db.query(PurchaseRequest)
     # Employees only see their own requests
-    if user.role == UserRole.OUTLET_STAFF:
+    if user.role.value in ["receptionist", "trainer"]:
         q = q.filter(PurchaseRequest.employee_id == user.id)
     if status:
         q = q.filter(PurchaseRequest.status == status)
@@ -92,7 +92,7 @@ def get_request(pr_id: int, db: Session = Depends(get_db), user=Depends(get_curr
     pr = db.query(PurchaseRequest).filter(PurchaseRequest.id == pr_id).first()
     if not pr:
         raise HTTPException(404, "Request not found")
-    if user.role == UserRole.OUTLET_STAFF and pr.employee_id != user.id:
+    if user.role.value in ["receptionist", "trainer"] and pr.employee_id != user.id:
         raise HTTPException(403, "Access denied")
     return _enrich(pr)
 
@@ -107,7 +107,7 @@ def update_request(
     pr = db.query(PurchaseRequest).filter(PurchaseRequest.id == pr_id).first()
     if not pr:
         raise HTTPException(404, "Request not found")
-    if user.role == UserRole.OUTLET_STAFF:
+    if user.role.value in ["receptionist", "trainer"]:
         if pr.employee_id != user.id:
             raise HTTPException(403, "Access denied")
         if pr.status != "Pending":
@@ -183,7 +183,7 @@ def cancel_request(
     pr = db.query(PurchaseRequest).filter(PurchaseRequest.id == pr_id).first()
     if not pr:
         raise HTTPException(404, "Request not found")
-    if user.role == UserRole.OUTLET_STAFF and pr.employee_id != user.id:
+    if user.role.value in ["receptionist", "trainer"] and pr.employee_id != user.id:
         raise HTTPException(403, "Access denied")
     if pr.status not in ("Pending",):
         raise HTTPException(400, "Only pending requests can be cancelled")
@@ -216,7 +216,7 @@ def upload_attachment(
     pr = db.query(PurchaseRequest).filter(PurchaseRequest.id == pr_id).first()
     if not pr:
         raise HTTPException(404, "Request not found")
-    if user.role == UserRole.OUTLET_STAFF and pr.employee_id != user.id:
+    if user.role.value in ["receptionist", "trainer"] and pr.employee_id != user.id:
         raise HTTPException(403, "Access denied")
     ext = os.path.splitext(file.filename)[1]
     filename = f"{uuid.uuid4()}{ext}"

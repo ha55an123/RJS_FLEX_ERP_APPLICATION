@@ -63,6 +63,6 @@ def stock_out(
     qty: int,
     location: str,
     db: Session = Depends(get_db),
-    user = Depends(require_role(["admin", "company_manager", "outlet_staff"]))
+    user = Depends(require_role(["admin", "company_manager", "receptionist"]))
 ):
     return remove_stock(db, sku, qty, user.id, location)

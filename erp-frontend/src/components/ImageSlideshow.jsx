@@ -1,30 +1,30 @@
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-import img1 from '../assets/ben-iwara-wgiRhtBcNIg-unsplash.jpg';
-import img2 from '../assets/burgess-milner-OYYE4g-I5ZQ-unsplash.jpg';
-import img3 from '../assets/clark-street-mercantile-qnKhZJPKFD8-unsplash.jpg';
-import img4 from '../assets/freestocks-_3Q3tsJ01nc-unsplash.jpg';
-import img5 from '../assets/fujiphilm-ojZ4wJNUM5w-unsplash.jpg';
-import img6 from '../assets/kam-myers-1SRJ7s0bdr0-unsplash.jpg';
-import img7 from '../assets/kam-myers-TRdOPdjKnO8-unsplash.jpg';
-import img8 from '../assets/levi-meir-clancy-yjajswQaq3w-unsplash.jpg';
-import img9 from '../assets/marcus-loke-xXJ6utyoSw0-unsplash.jpg';
-import img10 from '../assets/parker-burchfield-tvG4WvjgsEY-unsplash.jpg';
+import img1 from '../assets/athletic-muscular-man-training-gymnastics-gym.jpg';
+import img2 from '../assets/pexels-214377531-18078019.jpg';
+import img3 from '../assets/pexels-alpyildizlar-15127546.jpg';
+import img4 from '../assets/pexels-apasaric-325185.jpg';
+import img5 from '../assets/pexels-assomyron-32695898.jpg';
+import img6 from '../assets/pexels-cottonbro-6293227.jpg';
+import img7 from '../assets/pexels-emanuel-pedro-1266938328-32610333.jpg';
+import img8 from '../assets/pexels-jakubzerdzicki-31015145.jpg';
+import img9 from '../assets/pexels-jdgromov-4716814.jpg';
+import img10 from '../assets/strong-man-training-gym.jpg';
 
 const SLIDES = [img1, img2, img3, img4, img5, img6, img7, img8, img9, img10];
 
 const CAPTIONS = [
-  'Premium Quality Garments',
-  'Modern Fashion Collections',
-  'Crafted with Excellence',
-  'Style Meets Comfort',
-  'Exclusive Designs',
-  'Tailored Perfection',
-  'Latest Trends',
-  'Signature Collection',
-  'Luxury Fabrics',
-  'Fashion Forward',
+  'Transform Your Body',
+  'Build Strength & Power',
+  'Achieve Your Fitness Goals',
+  'Train Like a Champion',
+  'Premium Equipment',
+  'Expert Trainers',
+  'Modern Facilities',
+  'Personalized Programs',
+  'Community of Athletes',
+  'Your Journey Starts Here',
 ];
 
 export default function ImageSlideshow({ height = 340 }) {
@@ -62,7 +62,7 @@ export default function ImageSlideshow({ height = 340 }) {
       <div className="banner-overlay" />
 
       <div className="banner-caption">
-        <p className="banner-tag">Foster Garments</p>
+        <p className="banner-tag">RJS Flex Gym</p>
         <h2 className="banner-title">{CAPTIONS[current]}</h2>
         <div className="banner-dots">
           {SLIDES.map((_, i) => (

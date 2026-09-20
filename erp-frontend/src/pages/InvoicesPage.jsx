@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { getMyInvoices, getAllInvoices, downloadInvoice, updateInvoiceStatus } from '../api/invoices';
+import Toast from '../components/Toast';
 import { useAuth } from '../context/AuthContext';
 import { FileText, Download } from 'lucide-react';
-import Toast from '../components/Toast';
 
 const STATUS_CLASS = { unpaid: 'warning', paid: 'success', cancelled: 'danger' };
 const STATUS_OPTIONS = ['unpaid', 'paid'];
@@ -19,10 +19,14 @@ export default function InvoicesPage() {
   const load = async () => {
     setLoading(true);
     try {
-      const { data } = isManager ? await getAllInvoices() : await getMyInvoices();
-      setInvoices(data);
-    } catch {}
-    setLoading(false);
+      const res = await getMyInvoices();
+      setInvoices(res.data || []);
+    } catch (err) {
+      setToast({ message: err.response?.data?.detail || 'Failed to load invoices', type: 'error' });
+      throw err;
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, [isManager]);

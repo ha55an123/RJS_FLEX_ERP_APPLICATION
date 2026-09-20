@@ -1,21 +1,24 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { login, verifyOtp, forgotPassword, verifyResetOtp, resetPassword } from '../api/auth';
-import { Trees, Mail, Lock, KeyRound, ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, KeyRound, ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react';
+import logo from '../assets/RJS_Main_Logo.jpeg';
 
-import img1 from '../assets/ben-iwara-wgiRhtBcNIg-unsplash.jpg';
-import img2 from '../assets/burgess-milner-OYYE4g-I5ZQ-unsplash.jpg';
-import img3 from '../assets/clark-street-mercantile-qnKhZJPKFD8-unsplash.jpg';
-import img4 from '../assets/freestocks-_3Q3tsJ01nc-unsplash.jpg';
-import img5 from '../assets/fujiphilm-ojZ4wJNUM5w-unsplash.jpg';
-import img6 from '../assets/kam-myers-1SRJ7s0bdr0-unsplash.jpg';
-import img7 from '../assets/kam-myers-TRdOPdjKnO8-unsplash.jpg';
-import img8 from '../assets/levi-meir-clancy-yjajswQaq3w-unsplash.jpg';
-import img9 from '../assets/marcus-loke-xXJ6utyoSw0-unsplash.jpg';
-import img10 from '../assets/parker-burchfield-tvG4WvjgsEY-unsplash.jpg';
+import img1 from '../assets/Rjs-background.png';
+import img2 from '../assets/athletic-muscular-man-training-gymnastics-gym.jpg';
+import img3 from '../assets/pexels-214377531-18078019.jpg';
+import img4 from '../assets/pexels-alpyildizlar-15127546.jpg';
+import img5 from '../assets/pexels-apasaric-325185.jpg';
+import img6 from '../assets/pexels-assomyron-32695898.jpg';
+import img7 from '../assets/pexels-cottonbro-6293227.jpg';
+import img8 from '../assets/pexels-emanuel-pedro-1266938328-32610333.jpg';
+import img9 from '../assets/pexels-jakubzerdzicki-31015145.jpg';
+import img10 from '../assets/pexels-jdgromov-4716814.jpg';
+import img11 from '../assets/pexels-totalshape-6046979.jpg';
+import img12 from '../assets/strong-man-training-gym.jpg';
 
-const SLIDES = [img1, img2, img3, img4, img5, img6, img7, img8, img9, img10];
+const SLIDES = [img1, img2, img3, img4, img5, img6, img7, img8, img9, img10, img11, img12];
 
 // Steps:
 // 1 = login form
@@ -53,10 +56,10 @@ function Slideshow() {
       ))}
       <div className="slideshow-overlay" />
       <div className="slideshow-brand">
-        <Trees size={36} color="#fff" />
+        <img src={logo} alt="RJS Flex Gym" style={{ width: 52, height: 52, objectFit: 'contain', borderRadius: 10, background: '#fff', padding: 3 }} />
         <div>
-          <h2>Foster Garments</h2>
-          <p>Enterprise Resource Planning</p>
+          <h2>RJS Flex Gym</h2>
+          <p style={{ color: '#fbbf24' }}>Enterprise Resource Planning</p>
         </div>
       </div>
       <div className="slideshow-controls">
@@ -73,8 +76,14 @@ function Slideshow() {
 }
 
 export default function LoginPage() {
-  const { signin } = useAuth();
+  const { signin, user, initializing } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!initializing && user) {
+      navigate('/gym-dashboard', { replace: true });
+    }
+  }, [initializing, user, navigate]);
 
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState('');
@@ -119,7 +128,7 @@ export default function LoginPage() {
     try {
       const { data } = await verifyOtp(email, otp);
       signin(data.access_token, data.refresh_token);
-      navigate('/dashboard');
+      navigate('/gym-dashboard');
     } catch (err) {
       setError(err.response?.data?.detail || 'Invalid OTP');
     } finally {
@@ -191,6 +200,10 @@ export default function LoginPage() {
     background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 0,
   };
 
+  if (initializing) {
+    return <div className="page-loading">Restoring session...</div>;
+  }
+
   return (
     <div className="auth-split">
       <Slideshow />
@@ -198,8 +211,11 @@ export default function LoginPage() {
       <div className="auth-panel">
         <div className="auth-card-new">
           <div className="auth-brand">
-            <Trees size={32} />
-            <h1>Foster Garments</h1>
+            <img src={logo} alt="RJS Flex Gym" style={{ width: 56, height: 56, objectFit: 'contain', borderRadius: 12, background: '#fff', padding: 4 }} />
+            <div>
+              <h1 style={{ margin: 0 }}>RJS Flex Gym</h1>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: 2 }}>Enterprise Resource Planning</p>
+            </div>
           </div>
 
           {/* ── Step 1: Login ── */}
@@ -211,13 +227,15 @@ export default function LoginPage() {
               <div className="input-group">
                 <Mail size={16} />
                 <input type="text" placeholder="Username or email" value={email}
-                  onChange={(e) => setEmail(e.target.value)} required autoFocus />
+                  onChange={(e) => setEmail(e.target.value)} required autoFocus
+                  />
               </div>
 
               <div className="input-group" style={inputStyle}>
                 <Lock size={16} />
                 <input type={showPassword ? 'text' : 'password'} placeholder="Password"
-                  value={password} onChange={(e) => setPassword(e.target.value)} required />
+                  value={password} onChange={(e) => setPassword(e.target.value)} required
+                  />
                 <button type="button" style={eyeStyle} onClick={() => setShowPassword((v) => !v)}>
                   {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
@@ -237,6 +255,13 @@ export default function LoginPage() {
                   Forgot password?
                 </button>
               </p>
+
+              <p className="auth-footer" style={{ marginTop: '0.5rem', textAlign: 'center', fontSize: '0.85rem' }}>
+                Don't have an account?{' '}
+                <Link to="/register" style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'none' }}>
+                  Create an account
+                </Link>
+              </p>
             </form>
           )}
 
@@ -249,7 +274,8 @@ export default function LoginPage() {
               <div className="input-group">
                 <KeyRound size={16} />
                 <input type="text" placeholder="6-digit OTP" value={otp}
-                  onChange={(e) => setOtp(e.target.value)} maxLength={6} required autoFocus />
+                  onChange={(e) => setOtp(e.target.value)} maxLength={6} required autoFocus
+                  />
               </div>
 
               {error && <p className="auth-error">{error}</p>}
@@ -273,7 +299,8 @@ export default function LoginPage() {
               <div className="input-group">
                 <Mail size={16} />
                 <input type="text" placeholder="Username or email" value={resetEmail}
-                  onChange={(e) => setResetEmail(e.target.value)} required autoFocus />
+                  onChange={(e) => setResetEmail(e.target.value)} required autoFocus
+                  />
               </div>
 
               {error && <p className="auth-error">{error}</p>}
@@ -297,7 +324,8 @@ export default function LoginPage() {
               <div className="input-group">
                 <KeyRound size={16} />
                 <input type="text" placeholder="6-digit OTP" value={resetOtp}
-                  onChange={(e) => setResetOtp(e.target.value)} maxLength={6} required autoFocus />
+                  onChange={(e) => setResetOtp(e.target.value)} maxLength={6} required autoFocus
+                  />
               </div>
 
               {error && <p className="auth-error">{error}</p>}
@@ -322,7 +350,8 @@ export default function LoginPage() {
               <div className="input-group" style={inputStyle}>
                 <Lock size={16} />
                 <input type={showNewPassword ? 'text' : 'password'} placeholder="New password"
-                  value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required autoFocus />
+                  value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required autoFocus
+                  />
                 <button type="button" style={eyeStyle} onClick={() => setShowNewPassword((v) => !v)}>
                   {showNewPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
@@ -331,7 +360,8 @@ export default function LoginPage() {
               <div className="input-group">
                 <Lock size={16} />
                 <input type={showNewPassword ? 'text' : 'password'} placeholder="Confirm new password"
-                  value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+                  value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required
+                  />
               </div>
 
               {error && <p className="auth-error">{error}</p>}

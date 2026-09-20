@@ -28,7 +28,7 @@ def my_invoices(
 @router.get("/all")
 def all_invoices(
     db: Session = Depends(get_db),
-    user=Depends(require_role(["admin", "company_manager"]))
+    user=Depends(require_role(["admin", "company_manager", "super_admin", "gym_owner"]))
 ):
     return db.query(Invoice).all()
 

@@ -9,6 +9,7 @@ from app.core.security import (
     verify_password, get_password_hash,
     create_access_token, create_refresh_token, decode_token
 )
+from app.core.auth_dependencies import get_current_user
 from app.core.email_service import send_otp_email, send_reset_otp_email
 from app.models.user import User
 from app.models.otp import UserOTP
@@ -104,6 +105,17 @@ def verify_otp(email: str, otp: str, db: Session = Depends(get_db)):
     }
 
 
+@router.get("/me")
+def get_me(current_user: User = Depends(get_current_user)):
+    return {
+        "email": current_user.email,
+        "username": current_user.username,
+        "role": current_user.role.value,
+        "name": _display_name(current_user),
+        "is_active": current_user.is_active,
+    }
+
+
 @router.post("/refresh")
 def refresh(token: str, db: Session = Depends(get_db)):
     payload = decode_token(token)
@@ -119,6 +131,16 @@ def refresh(token: str, db: Session = Depends(get_db)):
         "role": user.role.value,
         "name": _display_name(user),
     })}
+
+
+@router.get("/me")
+def get_current_user_info(current_user: User = Depends(get_current_user)):
+    """Get current authenticated user info."""
+    return {
+        "sub": current_user.email,
+        "role": current_user.role.value,
+        "name": _display_name(current_user),
+    }
 
 
 @router.post("/logout")
@@ -217,3 +239,46 @@ def reset_password(reset_token: str, new_password: str, db: Session = Depends(ge
     user.updated_at = datetime.utcnow()
     db.commit()
     return {"message": "Password reset successfully"}
+
+
+# ─── Registration ─────────────────────────────────────────────────────────────
+
+from pydantic import BaseModel
+
+
+class RegisterRequest(BaseModel):
+    username: str
+    email: str
+    password: str
+    full_name: str = None
+
+
+@router.post("/register", status_code=status.HTTP_201_CREATED)
+def register(data: RegisterRequest, db: Session = Depends(get_db)):
+    """Register a new user account."""
+    # Check if username already exists
+    if db.query(User).filter(User.username == data.username).first():
+        raise HTTPException(400, "Username already taken")
+    
+    # Check if email already exists
+    if db.query(User).filter(User.email == data.email).first():
+        raise HTTPException(400, "Email already registered")
+    
+    # Validate password
+    if len(data.password) < 6:
+        raise HTTPException(400, "Password must be at least 6 characters")
+    
+    # Create new user with MEMBER role (default for self-registration)
+    from app.models.user import UserRole
+    new_user = User(
+        username=data.username,
+        email=data.email,
+        hashed_password=get_password_hash(data.password),
+        role=UserRole.MEMBER,
+        is_active=True,
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    
+    return {"message": "Registration successful", "username": new_user.username, "role": new_user.role.value}

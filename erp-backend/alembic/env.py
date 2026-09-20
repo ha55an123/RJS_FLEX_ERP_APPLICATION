@@ -1,26 +1,38 @@
 from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool
 from alembic import context
-import sys
-import os
+import sys, os
 
-# Add project root to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from app.core.database import Base
+
+# ── Preserved models ──────────────────────────────────────────────────────────
 from app.models.user import User
 from app.models.otp import UserOTP
 from app.models.device import UserDevice
 from app.models.audit_log import AuditLog
-from app.models.token_blacklist import TokenBlacklist
 from app.models.inventory import InventoryItem, StockTransaction, Product
 from app.models.order import Order, OrderItem
 from app.models.invoice import Invoice
+from app.models.employee import Employee
 import app.models.accounting
 import app.models.production_payroll
+import app.models.attendance_payroll
+import app.models.purchase
 
-# Import ALL models here (IMPORTANT for autogenerate)
-from app.models import user
+# ── New Gym models ────────────────────────────────────────────────────────────
+import app.models.branch
+import app.models.gym_member
+import app.models.gym_staff
+import app.models.membership
+import app.models.gym_attendance
+import app.models.biometric_device
+import app.models.workout
+import app.models.diet
+import app.models.gym_equipment
+import app.models.gym_inventory
+import app.models.gym_payment
 
 config = context.config
 
@@ -38,7 +50,6 @@ def run_migrations_offline():
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
     )
-
     with context.begin_transaction():
         context.run_migrations()
 
@@ -49,13 +60,11 @@ def run_migrations_online():
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
-
     with connectable.connect() as connection:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
         )
-
         with context.begin_transaction():
             context.run_migrations()
 

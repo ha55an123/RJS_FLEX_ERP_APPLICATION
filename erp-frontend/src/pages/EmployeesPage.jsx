@@ -52,12 +52,16 @@ function EmployeeModal({ employee, onClose, onSave }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal modal-lg" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '580px', maxHeight: '90vh', overflowY: 'auto' }}>
-        <h3>{editing ? 'Edit Employee' : 'Add Employee'}</h3>
+    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="employee-modal-title">
+      <div className="modal-card modal-lg" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '580px' }}>
+        <div className="modal-header">
+          <h2 id="employee-modal-title">{editing ? 'Edit Employee' : 'Add Employee'}</h2>
+          <button onClick={onClose} className="icon-btn" aria-label="Close employee modal">×</button>
+        </div>
 
-        <form onSubmit={handleSubmit}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 1rem' }}>
+        <form onSubmit={handleSubmit} className="modal-form">
+          <div className="modal-body">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 1rem' }}>
             <Field label="Full Name *">
               <input style={inputStyle} value={form.full_name} onChange={set('full_name')} required placeholder="John Doe" />
             </Field>
@@ -88,18 +92,18 @@ function EmployeeModal({ employee, onClose, onSave }) {
                 <option value="inactive">Inactive</option>
               </select>
             </Field>
+            </div>
+
+            <Field label="Address">
+              <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: 64 }} value={form.address} onChange={set('address')} placeholder="Full address" />
+            </Field>
+            <Field label="Notes">
+              <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: 56 }} value={form.notes} onChange={set('notes')} placeholder="Any additional notes…" />
+            </Field>
+
+            {error && <p className="auth-error">{error}</p>}
           </div>
-
-          <Field label="Address">
-            <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: 64 }} value={form.address} onChange={set('address')} placeholder="Full address" />
-          </Field>
-          <Field label="Notes">
-            <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: 56 }} value={form.notes} onChange={set('notes')} placeholder="Any additional notes…" />
-          </Field>
-
-          {error && <p className="auth-error">{error}</p>}
-
-          <div className="modal-actions" style={{ marginTop: '1rem' }}>
+          <div className="modal-footer" style={{ marginTop: '1rem' }}>
             <button type="button" className="btn-ghost" onClick={onClose}>Cancel</button>
             <button type="submit" className="btn-primary" disabled={loading}>
               {loading ? 'Saving…' : editing ? 'Save Changes' : 'Add Employee'}

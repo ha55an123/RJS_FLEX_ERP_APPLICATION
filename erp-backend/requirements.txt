@@ -15,6 +15,12 @@ bcrypt==4.2.0
 
 python-multipart==0.0.9
 
+deepface==0.0.101
+opencv-python-headless==4.9.0.80
+numpy==1.26.4
+scipy==1.13.1
+tf-keras
+
 redis==5.0.8
 celery==5.4.0
 

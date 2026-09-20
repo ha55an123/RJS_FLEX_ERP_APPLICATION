@@ -42,50 +42,55 @@ function ExpenseModal({ expense, ledgers, onClose, onSuccess }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
-        <h3>{editing ? 'Edit Expense' : 'Add Expense'}</h3>
-        <form onSubmit={handleSubmit}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 1rem' }}>
-            <div>
-              <label>Date</label>
-              <input type="date" value={form.expense_date} onChange={(e) => set('expense_date', e.target.value)} required />
+    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="expense-modal-title">
+      <div className="modal-card modal-lg" style={{ maxWidth: 640 }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2 id="expense-modal-title">{editing ? 'Edit Expense' : 'Add Expense'}</h2>
+          <button onClick={onClose} className="icon-btn" aria-label="Close expense modal">×</button>
+        </div>
+        <form onSubmit={handleSubmit} className="modal-form">
+          <div className="modal-body">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 1rem' }}>
+              <div>
+                <label>Date</label>
+                <input type="date" value={form.expense_date} onChange={(e) => set('expense_date', e.target.value)} required />
+              </div>
+              <div>
+                <label>Ledger Account</label>
+                <select value={form.ledger_id} onChange={(e) => set('ledger_id', e.target.value)} required>
+                  {ledgers.map((l) => <option key={l.id} value={l.id}>{l.ledger_name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label>Category</label>
+                <select value={form.category} onChange={(e) => set('category', e.target.value)}>
+                  {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label>Amount (PKR)</label>
+                <input type="number" min="0" step="0.01" value={form.amount} onChange={(e) => set('amount', e.target.value)} required />
+              </div>
+              <div>
+                <label>Payment Method</label>
+                <select value={form.payment_method} onChange={(e) => set('payment_method', e.target.value)}>
+                  {PAYMENT_METHODS.map((m) => <option key={m}>{m}</option>)}
+                </select>
+              </div>
+              <div>
+                <label>Vendor Name</label>
+                <input value={form.vendor_name} onChange={(e) => set('vendor_name', e.target.value)} placeholder="Optional" />
+              </div>
+              <div>
+                <label>Invoice #</label>
+                <input value={form.invoice_number} onChange={(e) => set('invoice_number', e.target.value)} placeholder="Optional" />
+              </div>
             </div>
-            <div>
-              <label>Ledger Account</label>
-              <select value={form.ledger_id} onChange={(e) => set('ledger_id', e.target.value)} required>
-                {ledgers.map((l) => <option key={l.id} value={l.id}>{l.ledger_name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label>Category</label>
-              <select value={form.category} onChange={(e) => set('category', e.target.value)}>
-                {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
-              </select>
-            </div>
-            <div>
-              <label>Amount (PKR)</label>
-              <input type="number" min="0" step="0.01" value={form.amount} onChange={(e) => set('amount', e.target.value)} required />
-            </div>
-            <div>
-              <label>Payment Method</label>
-              <select value={form.payment_method} onChange={(e) => set('payment_method', e.target.value)}>
-                {PAYMENT_METHODS.map((m) => <option key={m}>{m}</option>)}
-              </select>
-            </div>
-            <div>
-              <label>Vendor Name</label>
-              <input value={form.vendor_name} onChange={(e) => set('vendor_name', e.target.value)} placeholder="Optional" />
-            </div>
-            <div>
-              <label>Invoice #</label>
-              <input value={form.invoice_number} onChange={(e) => set('invoice_number', e.target.value)} placeholder="Optional" />
-            </div>
+            <label>Description</label>
+            <textarea value={form.description} onChange={(e) => set('description', e.target.value)} rows={2} style={{ resize: 'vertical' }} />
+            {error && <p className="auth-error">{error}</p>}
           </div>
-          <label>Description</label>
-          <textarea value={form.description} onChange={(e) => set('description', e.target.value)} rows={2} style={{ resize: 'vertical' }} />
-          {error && <p className="auth-error">{error}</p>}
-          <div className="modal-actions">
+          <div className="modal-footer">
             <button type="button" className="btn-ghost" onClick={onClose}>Cancel</button>
             <button type="submit" className="btn-primary" disabled={loading}>{loading ? 'Saving…' : 'Save'}</button>
           </div>
@@ -114,11 +119,33 @@ export default function ExpensesPage() {
       setExpenses(expRes.data);
       setSummary(sumRes.data);
       setLedgers(ledRes.data);
-    } catch {}
+    } catch (err) {
+      // bubble up error so callers can handle it (and show toast)
+      setLoading(false);
+      throw err;
+    }
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [JSON.stringify(filters)]);
+  // improved error handling when loading data
+  useEffect(() => {
+    const safeLoad = async () => {
+      try {
+        await load();
+      } catch (err) {
+        setToast({ message: err.response?.data?.detail || 'Failed to load expenses', type: 'error' });
+      }
+    };
+    safeLoad();
+  }, [JSON.stringify(filters)]);
+
+  // toggle body scroll lock when expense modal is open
+  useEffect(() => {
+    if (modal) document.body.classList.add('modal-open');
+    else document.body.classList.remove('modal-open');
+    return () => document.body.classList.remove('modal-open');
+  }, [modal]);
+
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this expense?')) return;

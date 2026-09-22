@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { equipmentAPI } from '../api/gym/equipment';
+import { branchesAPI } from '../api/gym/branches';
 import { Plus, Search, Edit, Trash2, Wrench, AlertTriangle } from 'lucide-react';
 
 export default function EquipmentPage() {
   const [equipment, setEquipment] = useState([]);
+  const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
@@ -22,6 +24,7 @@ export default function EquipmentPage() {
     location: '',
     status: 'operational',
     condition: 'excellent',
+    branch_id: '',
   });
   const [maintenanceFormData, setMaintenanceFormData] = useState({
     maintenance_type: 'routine',
@@ -33,14 +36,28 @@ export default function EquipmentPage() {
 
   useEffect(() => {
     loadEquipment();
+    loadBranches();
   }, []);
+
+  const loadBranches = async () => {
+    try {
+      const response = await branchesAPI.getAll();
+      // Backend returns paginated response: {items: [...]}
+      setBranches(response.data?.items || []);
+    } catch (error) {
+      console.error('Failed to load branches:', error);
+      setBranches([]); // Set empty array on error to prevent blank page
+    }
+  };
 
   const loadEquipment = async () => {
     try {
       const response = await equipmentAPI.getAll();
-      setEquipment(response.data || []);
+      // Backend returns paginated response: { total, page, page_size, items }
+      setEquipment(response.data?.items || []);
     } catch (error) {
       console.error('Failed to load equipment:', error);
+      setEquipment([]); // Set empty array on error to prevent blank page
     } finally {
       setLoading(false);
     }
@@ -68,17 +85,25 @@ export default function EquipmentPage() {
         location: '',
         status: 'operational',
         condition: 'excellent',
+        branch_id: '',
       });
       loadEquipment();
     } catch (error) {
       console.error('Failed to save equipment:', error);
+      alert('Failed to save equipment. Please try again.');
     }
   };
 
   const handleMaintenanceSubmit = async (e) => {
     e.preventDefault();
     try {
-      await equipmentAPI.addMaintenanceLog(selectedEquipmentForMaintenance.id, maintenanceFormData);
+      // Backend expects technician_name, frontend sends performed_by
+      const submitData = {
+        ...maintenanceFormData,
+        maintenance_date: new Date().toISOString().split('T')[0], // Add required maintenance_date
+        technician_name: maintenanceFormData.performed_by,
+      };
+      await equipmentAPI.addMaintenanceLog(selectedEquipmentForMaintenance.id, submitData);
       setShowMaintenanceModal(false);
       setSelectedEquipmentForMaintenance(null);
       setMaintenanceFormData({
@@ -91,6 +116,7 @@ export default function EquipmentPage() {
       loadEquipment();
     } catch (error) {
       console.error('Failed to add maintenance log:', error);
+      alert('Failed to add maintenance log. Please try again.');
     }
   };
 
@@ -108,6 +134,7 @@ export default function EquipmentPage() {
       location: equip.location || '',
       status: equip.status || 'operational',
       condition: equip.condition || 'excellent',
+      branch_id: equip.branch_id || '',
     });
     setShowModal(true);
   };
@@ -119,6 +146,7 @@ export default function EquipmentPage() {
         loadEquipment();
       } catch (error) {
         console.error('Failed to delete equipment:', error);
+        alert('Failed to delete equipment. Please try again.');
       }
     }
   };
@@ -134,13 +162,211 @@ export default function EquipmentPage() {
 
   if (loading) return <div className="p-6">Loading equipment...</div>;
 
+  if (!loading && equipment.length === 0) {
+    return (
+      <div className="p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Equipment</h1>
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-black font-semibold hover:opacity-90"
+            style={{ background: 'linear-gradient(135deg, #eab308, #ca8a04)' }}
+          >
+            <Plus size={20} />
+            Add Equipment
+          </button>
+        </div>
+        <div className="bg-white rounded-lg shadow p-8 text-center">
+          <Wrench size={48} className="mx-auto mb-4 text-gray-400" />
+          <p className="text-gray-500 text-lg">No equipment found</p>
+          <p className="text-gray-400 text-sm mt-2">Add your first equipment to get started</p>
+        </div>
+        {/* Modal must be rendered here too for empty state */}
+        {showModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <h2 className="text-2xl font-bold mb-4">
+                  {editingEquipment ? 'Edit Equipment' : 'Add New Equipment'}
+                </h2>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Branch *</label>
+                      <select
+                        required
+                        value={formData.branch_id}
+                        onChange={(e) => setFormData({...formData, branch_id: parseInt(e.target.value)})}
+                        className="w-full border rounded-lg px-3 py-2"
+                      >
+                        <option value="">Select Branch</option>
+                        {branches.length === 0 ? (
+                          <option value="" disabled>No branches available</option>
+                        ) : (
+                          branches.map((branch) => (
+                            <option key={branch.id} value={branch.id}>{branch.name}</option>
+                          ))
+                        )}
+                      </select>
+                      {branches.length === 0 && (
+                        <p className="text-xs text-red-500 mt-1">
+                          No branches available. Please create a branch first.
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Name *</label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.name}
+                        onChange={(e) => setFormData({...formData, name: e.target.value})}
+                        className="w-full border rounded-lg px-3 py-2"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Category *</label>
+                      <select
+                        required
+                        value={formData.category}
+                        onChange={(e) => setFormData({...formData, category: e.target.value})}
+                        className="w-full border rounded-lg px-3 py-2"
+                      >
+                        <option value="">Select Category</option>
+                        <option value="cardio">Cardio</option>
+                        <option value="strength">Strength</option>
+                        <option value="free_weights">Free Weights</option>
+                        <option value="flexibility">Flexibility</option>
+                        <option value="functional">Functional</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Brand</label>
+                      <input
+                        type="text"
+                        value={formData.brand}
+                        onChange={(e) => setFormData({...formData, brand: e.target.value})}
+                        className="w-full border rounded-lg px-3 py-2"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Model</label>
+                      <input
+                        type="text"
+                        value={formData.model}
+                        onChange={(e) => setFormData({...formData, model: e.target.value})}
+                        className="w-full border rounded-lg px-3 py-2"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Serial Number</label>
+                      <input
+                        type="text"
+                        value={formData.serial_number}
+                        onChange={(e) => setFormData({...formData, serial_number: e.target.value})}
+                        className="w-full border rounded-lg px-3 py-2"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Location</label>
+                      <input
+                        type="text"
+                        value={formData.location}
+                        onChange={(e) => setFormData({...formData, location: e.target.value})}
+                        className="w-full border rounded-lg px-3 py-2"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Purchase Date</label>
+                      <input
+                        type="date"
+                        value={formData.purchase_date}
+                        onChange={(e) => setFormData({...formData, purchase_date: e.target.value})}
+                        className="w-full border rounded-lg px-3 py-2"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Purchase Price</label>
+                      <input
+                        type="number"
+                        value={formData.purchase_price}
+                        onChange={(e) => setFormData({...formData, purchase_price: parseFloat(e.target.value)})}
+                        className="w-full border rounded-lg px-3 py-2"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Warranty Expiry</label>
+                      <input
+                        type="date"
+                        value={formData.warranty_expiry}
+                        onChange={(e) => setFormData({...formData, warranty_expiry: e.target.value})}
+                        className="w-full border rounded-lg px-3 py-2"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Status</label>
+                      <select
+                        value={formData.status}
+                        onChange={(e) => setFormData({...formData, status: e.target.value})}
+                        className="w-full border rounded-lg px-3 py-2"
+                      >
+                        <option value="operational">Operational</option>
+                        <option value="maintenance">Under Maintenance</option>
+                        <option value="broken">Broken</option>
+                        <option value="retired">Retired</option>
+                      </select>
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium mb-1">Condition</label>
+                      <select
+                        value={formData.condition}
+                        onChange={(e) => setFormData({...formData, condition: e.target.value})}
+                        className="w-full border rounded-lg px-3 py-2"
+                      >
+                        <option value="excellent">Excellent</option>
+                        <option value="good">Good</option>
+                        <option value="fair">Fair</option>
+                        <option value="poor">Poor</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-3 mt-6">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowModal(false);
+                        setEditingEquipment(null);
+                      }}
+                      className="px-4 py-2 border rounded-lg hover:bg-gray-100"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 rounded-lg text-black font-semibold hover:opacity-90"
+                      style={{ background: 'linear-gradient(135deg, #eab308, #ca8a04)' }}
+                    >
+                      {editingEquipment ? 'Update' : 'Create'} Equipment
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Equipment</h1>
         <button
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-black font-semibold hover:opacity-90"
+          style={{ background: 'linear-gradient(135deg, #eab308, #ca8a04)' }}
         >
           <Plus size={20} />
           Add Equipment
@@ -222,6 +448,29 @@ export default function EquipmentPage() {
               </h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Branch *</label>
+                    <select
+                      required
+                      value={formData.branch_id}
+                      onChange={(e) => setFormData({...formData, branch_id: parseInt(e.target.value)})}
+                      className="w-full border rounded-lg px-3 py-2"
+                    >
+                      <option value="">Select Branch</option>
+                      {branches.length === 0 ? (
+                        <option value="" disabled>No branches available</option>
+                      ) : (
+                        branches.map((branch) => (
+                          <option key={branch.id} value={branch.id}>{branch.name}</option>
+                        ))
+                      )}
+                    </select>
+                    {branches.length === 0 && (
+                      <p className="text-xs text-red-500 mt-1">
+                        No branches available. Please create a branch first.
+                      </p>
+                    )}
+                  </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">Name *</label>
                     <input
@@ -352,7 +601,8 @@ export default function EquipmentPage() {
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    className="px-4 py-2 rounded-lg text-black font-semibold hover:opacity-90"
+                    style={{ background: 'linear-gradient(135deg, #eab308, #ca8a04)' }}
                   >
                     {editingEquipment ? 'Update' : 'Create'} Equipment
                   </button>
@@ -434,7 +684,8 @@ export default function EquipmentPage() {
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
+                    className="px-4 py-2 rounded-lg text-black font-semibold hover:opacity-90"
+                    style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}
                   >
                     Add Maintenance Log
                   </button>

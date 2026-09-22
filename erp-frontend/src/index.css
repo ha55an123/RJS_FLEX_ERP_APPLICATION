@@ -913,14 +913,237 @@ textarea { resize: vertical; min-height: 80px; }
 .banner-btn-right { right: 1rem; }
 
 /* ─── Responsive ─── */
-@media (max-width: 768px) {
-  .sidebar { transform: translateX(-100%); }
-  .main-content { margin-left: 0; padding: 1rem; }
-  .kpi-grid { grid-template-columns: 1fr 1fr; }
-  .charts-grid { grid-template-columns: 1fr; }
-  .form-grid { grid-template-columns: 1fr; }
-  .settings-layout { flex-direction: column; }
-  .settings-nav { width: 100%; }
+
+/* Mobile menu button */
+.mobile-menu-btn {
+  display: none;
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 1000;
+  background: rgba(234,179,8,0.15);
+  border: 1px solid rgba(234,179,8,0.35);
+  color: var(--primary);
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+  box-shadow: 0 2px 8px rgba(234,179,8,0.25);
+}
+.mobile-menu-btn:hover {
+  background: rgba(234,179,8,0.25);
+  transform: scale(1.05);
+}
+
+/* Mobile close button in sidebar */
+.mobile-close-btn {
+  display: none;
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 101;
+  background: rgba(255,71,87,0.15);
+  border: 1px solid rgba(255,71,87,0.35);
+  color: var(--danger);
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  font-weight: bold;
+  transition: var(--transition);
+}
+.mobile-close-btn:hover {
+  background: rgba(255,71,87,0.25);
+}
+
+/* Overlay when sidebar is open on mobile */
+.app-layout.sidebar-open::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(2px);
+  z-index: 99;
+}
+
+/* Small mobile (320px - 480px) */
+@media (max-width: 480px) {
+  .mobile-menu-btn { display: flex; }
+  .mobile-close-btn { display: flex; }
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    z-index: 100;
+  }
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+  .main-content {
+    margin-left: 0;
+    padding: 4rem 1rem 1rem;
+  }
+  .kpi-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  .kpi-card {
+    padding: 1rem;
+  }
+  .kpi-icon {
+    width: 42px;
+    height: 42px;
+  }
+  .kpi-value {
+    font-size: 1.4rem;
+  }
+  .charts-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .chart-card {
+    padding: 1.25rem;
+  }
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  .settings-layout {
+    flex-direction: column;
+  }
+  .settings-nav {
+    width: 100%;
+  }
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .page-header h1 {
+    font-size: 1.4rem;
+  }
+  .table-card {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .data-table {
+    min-width: 600px;
+  }
+  .modal-card {
+    width: calc(100% - 1rem);
+    max-height: 95vh;
+    margin: 0.5rem;
+  }
+  .modal-body {
+    padding: 1rem 0.75rem 5rem 0.75rem;
+  }
+  .modal-header,
+  .modal-footer {
+    padding-left: 0.85rem;
+    padding-right: 0.85rem;
+  }
+}
+
+/* Tablet (481px - 768px) */
+@media (min-width: 481px) and (max-width: 768px) {
+  .mobile-menu-btn { display: flex; }
+  .mobile-close-btn { display: flex; }
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    z-index: 100;
+  }
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+  .main-content {
+    margin-left: 0;
+    padding: 4rem 1.5rem 1.5rem;
+  }
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.875rem;
+  }
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  .settings-layout {
+    flex-direction: column;
+  }
+  .settings-nav {
+    width: 100%;
+  }
+  .table-card {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .data-table {
+    min-width: 600px;
+  }
+}
+
+/* Desktop (769px+) */
+@media (min-width: 769px) {
+  .mobile-menu-btn { display: none; }
+  .mobile-close-btn { display: none; }
+  .sidebar {
+    transform: translateX(0);
+  }
+  .main-content {
+    margin-left: var(--sidebar-w);
+    padding: 2rem 2.5rem;
+  }
+  .kpi-grid {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+  .charts-grid {
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  }
+  .form-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Prevent horizontal overflow globally */
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+#root {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Ensure tables don't cause page overflow */
+.table-card {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Ensure modals don't cause page overflow */
+.modal-overlay {
+  overflow-x: hidden;
+}
+
+/* Ensure forms don't overflow */
+.form-group,
+.input-group {
+  max-width: 100%;
+}
+
+/* Ensure buttons don't overflow */
+.btn-primary,
+.btn-secondary,
+.btn-danger {
+  max-width: 100%;
+  word-wrap: break-word;
 }
 
 /* When a modal is open, prevent the page behind from scrolling */

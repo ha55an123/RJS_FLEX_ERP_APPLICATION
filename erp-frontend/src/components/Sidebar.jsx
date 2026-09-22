@@ -51,7 +51,7 @@ const allLinks = [
 ];
 
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, onClose }) {
   const { user, signout } = useAuth();
   const navigate = useNavigate();
 
@@ -64,7 +64,7 @@ export default function Sidebar() {
   const links = allLinks.filter((l) => l.roles.includes(user?.role));
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${isOpen ? 'mobile-open' : ''}`}>
       <div className="sidebar-brand">
         <img src={logo} alt="RJS Flex Gym" style={{ width: 38, height: 38, objectFit: 'contain', borderRadius: 8, background: '#fff', padding: 3, flexShrink: 0 }} />
         <div style={{ lineHeight: 1.2 }}>
@@ -110,6 +110,15 @@ export default function Sidebar() {
       <button className="logout-btn" onClick={handleLogout}>
         <LogOut size={16} /> Logout
       </button>
+      {onClose && (
+        <button 
+          className="mobile-close-btn" 
+          onClick={onClose}
+          aria-label="Close menu"
+        >
+          ✕
+        </button>
+      )}
     </aside>
   );
 }

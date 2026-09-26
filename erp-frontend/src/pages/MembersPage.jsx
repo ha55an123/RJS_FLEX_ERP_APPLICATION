@@ -8,6 +8,7 @@ import api from '../api/axios';
 import { Plus, Search, Edit, Trash2, Fingerprint, User, Dumbbell, Apple, Eye } from 'lucide-react';
 import Toast from '../components/Toast';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const EMPTY_FORM = {
   branch_id: '',
@@ -33,6 +34,7 @@ const EMPTY_FORM = {
 
 export default function MembersPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [members, setMembers] = useState([]);
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);

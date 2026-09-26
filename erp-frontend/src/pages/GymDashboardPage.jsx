@@ -80,7 +80,9 @@ export default function GymDashboardPage() {
 
   const loadDashboard = async () => {
     try {
-      const response = await gymDashboardAPI.getOverview(user?.branch_id);
+      // Only pass branch_id for non-super_admin users
+      const branchId = user?.role === 'super_admin' ? undefined : user?.branch_id;
+      const response = await gymDashboardAPI.getOverview(branchId);
       setOverview(response.data);
     } catch (error) {
       console.error('Failed to load dashboard:', error);

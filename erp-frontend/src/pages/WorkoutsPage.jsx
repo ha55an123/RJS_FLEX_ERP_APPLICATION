@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { workoutsAPI } from '../api/gym/workouts';
 import { membersAPI } from '../api/gym/members';
-import { Plus, Search, Edit, Trash2, Dumbbell, User, Calendar } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Dumbbell, User, Calendar, Printer, Eye, Copy } from 'lucide-react';
 
 export default function WorkoutsPage() {
   const [workoutPlans, setWorkoutPlans] = useState([]);
@@ -11,8 +11,10 @@ export default function WorkoutsPage() {
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [showExerciseModal, setShowExerciseModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showPlanDetailModal, setShowPlanDetailModal] = useState(false);
   const [editingPlan, setEditingPlan] = useState(null);
   const [editingExercise, setEditingExercise] = useState(null);
+  const [selectedPlan, setSelectedPlan] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('plans');
   const [planFormData, setPlanFormData] = useState({
@@ -147,6 +149,87 @@ export default function WorkoutsPage() {
     }
   };
 
+  const handleViewPlan = async (plan) => {
+    try {
+      const response = await workoutsAPI.getPlanById(plan.id);
+      setSelectedPlan(response.data);
+      setShowPlanDetailModal(true);
+    } catch (error) {
+      console.error('Failed to load plan details:', error);
+    }
+  };
+
+  const handlePrintPlan = () => {
+    if (!selectedPlan) return;
+    const dayNames = {1: 'Monday', 2: 'Tuesday', 3: 'Wednesday', 4: 'Thursday', 5: 'Friday', 6: 'Saturday', 7: 'Sunday'};
+    
+    let exercisesHtml = '';
+    if (selectedPlan.exercises && selectedPlan.exercises.length > 0) {
+      const exercisesByDay = {};
+      selectedPlan.exercises.forEach(ex => {
+        const day = dayNames[ex.day_number] || `Day ${ex.day_number}`;
+        if (!exercisesByDay[day]) exercisesByDay[day] = [];
+        exercisesByDay[day].push(ex);
+      });
+      
+      Object.entries(exercisesByDay).forEach(([day, exercises]) => {
+        exercisesHtml += `
+          <h3 style="margin-top: 20px; color: #1a1a2e;">${day}</h3>
+          <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+            <thead>
+              <tr style="background: #f3f4f6;">
+                <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Exercise</th>
+                <th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Sets</th>
+                <th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Reps</th>
+                <th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Rest</th>
+                <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${exercises.map(ex => `
+                <tr>
+                  <td style="padding: 8px; border: 1px solid #ddd;">${ex.exercise?.name || 'N/A'}</td>
+                  <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">${ex.sets || '-'}</td>
+                  <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">${ex.reps || '-'}</td>
+                  <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">${ex.rest_seconds ? Math.round(ex.rest_seconds / 60) + ' min' : '-'}</td>
+                  <td style="padding: 8px; border: 1px solid #ddd;">${ex.notes || ''}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      });
+    }
+
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Workout Plan - ${selectedPlan.name}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h1 { color: #1a1a2e; }
+            h2 { color: #333; margin-top: 20px; }
+            .info { margin: 10px 0; }
+            .label { font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <h1>RJS FLEX GYM</h1>
+          <h2>WORKOUT PLAN</h2>
+          <div class="info"><span class="label">Plan:</span> ${selectedPlan.name}</div>
+          <div class="info"><span class="label">Description:</span> ${selectedPlan.description || 'N/A'}</div>
+          <div class="info"><span class="label">Difficulty:</span> ${selectedPlan.difficulty || 'N/A'}</div>
+          <div class="info"><span class="label">Duration:</span> ${selectedPlan.duration_weeks || 0} weeks</div>
+          <div class="info"><span class="label">Goal:</span> ${selectedPlan.goal || 'N/A'}</div>
+          ${exercisesHtml}
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
   const handleAssign = (plan) => {
     setAssignFormData({
       ...assignFormData,
@@ -236,6 +319,9 @@ export default function WorkoutsPage() {
                 <p>Sessions/week: {plan.sessions_per_week || 0}</p>
               </div>
               <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
+                <button onClick={() => handleViewPlan(plan)} className="text-gray-600 hover:text-gray-800" title="View Plan">
+                  <Eye size={18} />
+                </button>
                 <button onClick={() => handleAssign(plan)} className="text-green-600 hover:text-green-800" title="Assign to Member">
                   <User size={18} />
                 </button>
@@ -505,6 +591,100 @@ export default function WorkoutsPage() {
                   <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Assign</button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPlanDetailModal && selectedPlan && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold">{selectedPlan.name}</h2>
+                <div className="flex gap-2">
+                  <button onClick={handlePrintPlan} className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">
+                    <Printer size={18} />
+                    Print
+                  </button>
+                  <button onClick={() => setShowPlanDetailModal(false)} className="px-4 py-2 border rounded-lg hover:bg-gray-100">Close</button>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                  <span className="text-sm text-gray-500">Difficulty</span>
+                  <p className="font-medium capitalize">{selectedPlan.difficulty || 'N/A'}</p>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-500">Duration</span>
+                  <p className="font-medium">{selectedPlan.duration_weeks || 0} weeks</p>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-500">Goal</span>
+                  <p className="font-medium capitalize">{selectedPlan.goal || 'N/A'}</p>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-500">Sessions/Week</span>
+                  <p className="font-medium">{selectedPlan.sessions_per_week || 0}</p>
+                </div>
+              </div>
+              
+              {selectedPlan.description && (
+                <div className="mb-6">
+                  <span className="text-sm text-gray-500">Description</span>
+                  <p className="font-medium">{selectedPlan.description}</p>
+                </div>
+              )}
+
+              {selectedPlan.exercises && selectedPlan.exercises.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-bold mb-4">Weekly Schedule</h3>
+                  <div className="space-y-6">
+                    {(() => {
+                      const dayNames = {1: 'Monday', 2: 'Tuesday', 3: 'Wednesday', 4: 'Thursday', 5: 'Friday', 6: 'Saturday', 7: 'Sunday'};
+                      const exercisesByDay = {};
+                      selectedPlan.exercises.forEach(ex => {
+                        const day = dayNames[ex.day_number] || `Day ${ex.day_number}`;
+                        if (!exercisesByDay[day]) exercisesByDay[day] = [];
+                        exercisesByDay[day].push(ex);
+                      });
+                      
+                      return Object.entries(exercisesByDay).map(([day, exercises]) => (
+                        <div key={day} className="border rounded-lg p-4">
+                          <h4 className="font-bold text-lg mb-3">{day}</h4>
+                          {exercises.length === 0 ? (
+                            <p className="text-gray-500 italic">Rest Day</p>
+                          ) : (
+                            <table className="w-full">
+                              <thead>
+                                <tr className="bg-gray-50">
+                                  <th className="px-3 py-2 text-left text-sm">Exercise</th>
+                                  <th className="px-3 py-2 text-center text-sm">Sets</th>
+                                  <th className="px-3 py-2 text-center text-sm">Reps</th>
+                                  <th className="px-3 py-2 text-center text-sm">Rest</th>
+                                  <th className="px-3 py-2 text-left text-sm">Notes</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {exercises.map((ex, idx) => (
+                                  <tr key={idx} className="border-t">
+                                    <td className="px-3 py-2 font-medium">{ex.exercise?.name || 'N/A'}</td>
+                                    <td className="px-3 py-2 text-center">{ex.sets || '-'}</td>
+                                    <td className="px-3 py-2 text-center">{ex.reps || '-'}</td>
+                                    <td className="px-3 py-2 text-center">{ex.rest_seconds ? Math.round(ex.rest_seconds / 60) + ' min' : '-'}</td>
+                                    <td className="px-3 py-2 text-sm text-gray-600">{ex.notes || ''}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )}
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

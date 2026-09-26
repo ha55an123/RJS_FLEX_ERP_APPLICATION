@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { paymentsAPI } from '../api/gym/payments';
+import { membershipPlansAPI } from '../api/gym/memberships';
 import { Plus, Search, Edit, Trash2, DollarSign, Calendar, User, Printer } from 'lucide-react';
 import Toast from '../components/Toast';
 import MemberSearchSelect from '../components/MemberSearchSelect';
@@ -14,14 +15,18 @@ export default function GymPaymentsPage() {
   const [filterStatus, setFilterStatus] = useState('');
   const [selectedMember, setSelectedMember] = useState(null);
   const [memberError, setMemberError] = useState('');
+  const [membershipPlans, setMembershipPlans] = useState([]);
   const [formData, setFormData] = useState({
     member_id: '',
     amount: 0,
+    registration_fee: 0,
+    discount_amount: 0,
     payment_method: 'cash',
     payment_type: 'membership',
     status: 'paid',
     notes: '',
     payment_date: new Date().toISOString().split('T')[0],
+    plan_id: '',
   });
   const [formError, setFormError] = useState('');
   const [toast, setToast] = useState(null);
@@ -29,7 +34,21 @@ export default function GymPaymentsPage() {
 
   useEffect(() => {
     loadData();
+    loadMembershipPlans();
   }, []);
+
+  useEffect(() => {
+    if (formData.payment_type === 'membership' && formData.plan_id) {
+      const selectedPlan = membershipPlans.find(p => p.id === Number(formData.plan_id));
+      if (selectedPlan) {
+        setFormData(prev => ({
+          ...prev,
+          amount: selectedPlan.price,
+          registration_fee: selectedPlan.joining_fee || 0
+        }));
+      }
+    }
+  }, [formData.plan_id, formData.payment_type, membershipPlans]);
 
   const loadData = async () => {
     setLoading(true);
@@ -44,15 +63,27 @@ export default function GymPaymentsPage() {
     }
   };
 
+  const loadMembershipPlans = async () => {
+    try {
+      const plansRes = await membershipPlansAPI.getAll();
+      setMembershipPlans(plansRes.data || []);
+    } catch (error) {
+      console.error('Failed to load membership plans:', error);
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       member_id: '',
       amount: 0,
+      registration_fee: 0,
+      discount_amount: 0,
       payment_method: 'cash',
       payment_type: 'membership',
       status: 'paid',
       notes: '',
       payment_date: new Date().toISOString().split('T')[0],
+      plan_id: '',
     });
     setSelectedMember(null);
     setMemberError('');
@@ -77,6 +108,14 @@ export default function GymPaymentsPage() {
       setFormError('Amount must be greater than zero.');
       return;
     }
+    if (Number(formData.discount_amount) < 0) {
+      setFormError('Discount cannot be negative.');
+      return;
+    }
+    if (Number(formData.discount_amount) > Number(formData.amount)) {
+      setFormError('Discount cannot be greater than the payment amount.');
+      return;
+    }
 
     setSubmitting(true);
     const receiptWindow = !editingPayment && printReceipt ? window.open('', '_blank') : null;
@@ -84,12 +123,25 @@ export default function GymPaymentsPage() {
       const payload = {
         member_id: Number(formData.member_id),
         branch_id: editingPayment?.branch_id || selectedMember.branch_id,
-        amount: Number(formData.amount),
+        amount: Number(formData.amount) + Number(formData.registration_fee),
+        discount_amount: Number(formData.discount_amount) || 0,
         payment_method: formData.payment_method,
         payment_type: formData.payment_type,
         payment_date: formData.payment_date,
         notes: formData.notes || null,
       };
+
+      // Store plan and registration fee info in notes for membership payments to display on receipt
+      if (formData.payment_type === 'membership' && formData.plan_id) {
+        const plan = membershipPlans.find(p => p.id === Number(formData.plan_id));
+        if (plan) {
+          const planInfo = `Plan: ${plan.name} (ID: ${plan.id})`;
+          const regFeeInfo = formData.registration_fee > 0 ? ` | Reg Fee: ${formData.registration_fee}` : '';
+          payload.notes = formData.notes 
+            ? `${formData.notes} | ${planInfo}${regFeeInfo}`
+            : `${planInfo}${regFeeInfo}`;
+        }
+      }
 
       if (editingPayment) {
         await paymentsAPI.update(editingPayment.id, {
@@ -123,11 +175,14 @@ export default function GymPaymentsPage() {
     setFormData({
       member_id: payment.member_id || '',
       amount: payment.amount || 0,
+      registration_fee: 0,
+      discount_amount: payment.discount_amount || 0,
       payment_method: payment.payment_method || 'cash',
       payment_type: payment.payment_type || 'membership',
       status: payment.status || 'paid',
       notes: payment.notes || '',
       payment_date: payment.payment_date || new Date().toISOString().split('T')[0],
+      plan_id: '',
     });
     setSelectedMember(null);
     setMemberError('');
@@ -154,24 +209,36 @@ export default function GymPaymentsPage() {
       return;
     }
 
-    const STORAGE_KEY = 'gym_erp_settings';
-    let printerWidth = 100;
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) printerWidth = JSON.parse(saved).thermalPrinterWidth || 100;
-    } catch { /* ignore */ }
-
     const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
       '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;',
     }[char]));
     const memberName = payment.member_name || (member ? `${member.first_name} ${member.last_name}` : 'N/A');
     const memberCode = payment.member_code || member?.member_code || 'N/A';
 
-    const currentDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    const currentTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    // Use actual payment timestamp converted to Asia/Karachi timezone
+    const paymentTimestamp = payment.created_at ? new Date(payment.created_at) : new Date();
+    const currentDate = paymentTimestamp.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Karachi' });
+    const currentTime = paymentTimestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Karachi' });
     const discount = payment.discount_amount || 0;
     const subtotal = payment.amount || 0;
     const total = payment.total_amount || payment.amount || 0;
+
+    // Get plan details if available (from notes field)
+    let planName = '';
+    let registrationFee = 0;
+    if (payment.notes && payment.notes.includes('Plan:')) {
+      const planMatch = payment.notes.match(/Plan:\s*([^|]+)/);
+      if (planMatch) {
+        planName = planMatch[1].trim();
+      }
+      const regFeeMatch = payment.notes.match(/Reg Fee:\s*(\d+(?:\.\d+)?)/);
+      if (regFeeMatch) {
+        registrationFee = parseFloat(regFeeMatch[1]) || 0;
+      }
+    }
+
+    // Calculate membership amount (total - registration fee)
+    const membershipAmount = registrationFee > 0 ? subtotal - registrationFee : subtotal;
 
     printWindow.document.write(`
       <!DOCTYPE html><html><head>
@@ -179,43 +246,43 @@ export default function GymPaymentsPage() {
         <meta charset="UTF-8">
         <style>
           @page {
-            size: ${printerWidth}mm auto;
+            size: 80mm 297mm;
             margin: 0;
           }
           @media print {
             @page {
-              size: ${printerWidth}mm auto;
+              size: 80mm 297mm;
               margin: 0;
             }
             body {
-              width: ${printerWidth}mm;
+              width: 80mm;
               margin: 0;
-              padding: 3mm;
+              padding: 2mm;
               font-size: 10px;
               font-family: Arial, sans-serif;
             }
           }
           body {
             font-family: Arial, sans-serif;
-            width: ${printerWidth}mm;
+            width: 80mm;
             margin: 0;
-            padding: 3mm;
+            padding: 2mm;
             font-size: 10px;
             background: white;
           }
           .logo {
             text-align: center;
-            margin-bottom: 6px;
+            margin-bottom: 2px;
           }
           .logo img {
-            max-width: 45mm;
+            max-width: 50mm;
             height: auto;
           }
           .business-name {
             text-align: center;
             font-size: 14px;
             font-weight: bold;
-            margin: 4px 0;
+            margin: 2px 0;
             text-transform: uppercase;
           }
           .receipt-title {
@@ -233,23 +300,23 @@ export default function GymPaymentsPage() {
           .contact-info {
             text-align: center;
             font-size: 8px;
-            margin: 6px 0;
+            margin: 4px 0;
             line-height: 1.3;
           }
           .divider {
             border-top: 1px dashed #000;
-            margin: 8px 0;
+            margin: 6px 0;
           }
           .section-title {
             font-size: 9px;
             font-weight: bold;
-            margin: 6px 0 4px 0;
+            margin: 4px 0 3px 0;
             text-transform: uppercase;
           }
           .row {
             display: flex;
             justify-content: space-between;
-            margin: 3px 0;
+            margin: 2px 0;
             line-height: 1.3;
           }
           .row span:first-child {
@@ -263,7 +330,7 @@ export default function GymPaymentsPage() {
           .amount-row {
             display: flex;
             justify-content: space-between;
-            margin: 4px 0;
+            margin: 3px 0;
             line-height: 1.3;
           }
           .amount-row span:last-child {
@@ -272,15 +339,15 @@ export default function GymPaymentsPage() {
           .total-row {
             display: flex;
             justify-content: space-between;
-            margin: 8px 0;
-            padding-top: 6px;
+            margin: 6px 0;
+            padding-top: 4px;
             border-top: 2px solid #000;
             font-size: 12px;
             font-weight: bold;
           }
           .footer {
             text-align: center;
-            margin-top: 12px;
+            margin-top: 8px;
             font-size: 8px;
             line-height: 1.3;
           }
@@ -312,10 +379,17 @@ export default function GymPaymentsPage() {
         <div class="row"><span>Date:</span><span>${escapeHtml(currentDate)}</span></div>
         <div class="row"><span>Time:</span><span>${escapeHtml(currentTime)}</span></div>
         <div class="row"><span>Type:</span><span>${escapeHtml(payment.payment_type)}</span></div>
+        ${planName ? `<div class="row"><span>Plan:</span><span>${escapeHtml(planName)}</span></div>` : ''}
         <div class="row"><span>Method:</span><span>${escapeHtml(payment.payment_method)}</span></div>
         <div class="divider"></div>
         <div class="section-title">Amount</div>
-        <div class="amount-row"><span>Subtotal:</span><span>PKR ${Number(subtotal).toLocaleString()}</span></div>
+        ${registrationFee > 0 ? `
+          <div class="amount-row"><span>Membership:</span><span>PKR ${Number(membershipAmount).toLocaleString()}</span></div>
+          <div class="amount-row"><span>Registration Fee:</span><span>PKR ${Number(registrationFee).toLocaleString()}</span></div>
+          <div class="amount-row"><span>Subtotal:</span><span>PKR ${Number(subtotal).toLocaleString()}</span></div>
+        ` : `
+          <div class="amount-row"><span>Subtotal:</span><span>PKR ${Number(subtotal).toLocaleString()}</span></div>
+        `}
         ${discount > 0 ? `<div class="amount-row"><span>Discount:</span><span>-PKR ${Number(discount).toLocaleString()}</span></div>` : ''}
         <div class="total-row"><span>TOTAL:</span><span>PKR ${Number(total).toLocaleString()}</span></div>
         <div class="divider"></div>
@@ -483,6 +557,44 @@ export default function GymPaymentsPage() {
                       onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })} />
                   </div>
                   <div className="form-group">
+                    <label>Registration Fee (PKR)</label>
+                    <input type="number" min="0" step="0.01" value={formData.registration_fee}
+                      onChange={(e) => setFormData({ ...formData, registration_fee: parseFloat(e.target.value) || 0 })} />
+                  </div>
+                  <div className="form-group">
+                    <label>Discount (PKR)</label>
+                    <input type="number" min="0" step="0.01" value={formData.discount_amount}
+                      onChange={(e) => setFormData({ ...formData, discount_amount: parseFloat(e.target.value) || 0 })} />
+                  </div>
+                  <div className="form-group">
+                    <label>Subtotal (PKR)</label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={(Number(formData.amount) + Number(formData.registration_fee)).toLocaleString('en-PK', { minimumFractionDigits: 2 })}
+                      style={{
+                        background: 'rgba(234,179,8,0.1)',
+                        color: '#eab308',
+                        fontWeight: 'bold',
+                        border: '1px solid rgba(234,179,8,0.25)'
+                      }}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Net Payable (PKR)</label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={(Number(formData.amount) + Number(formData.registration_fee) - Number(formData.discount_amount)).toLocaleString('en-PK', { minimumFractionDigits: 2 })}
+                      style={{
+                        background: 'rgba(234,179,8,0.15)',
+                        color: '#eab308',
+                        fontWeight: 'bold',
+                        border: '1px solid rgba(234,179,8,0.3)'
+                      }}
+                    />
+                  </div>
+                  <div className="form-group">
                     <label>Payment Method</label>
                     <select value={formData.payment_method} onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}>
                       <option value="cash">Cash</option>
@@ -494,7 +606,7 @@ export default function GymPaymentsPage() {
                   </div>
                   <div className="form-group">
                     <label>Payment Type</label>
-                    <select value={formData.payment_type} onChange={(e) => setFormData({ ...formData, payment_type: e.target.value })}>
+                    <select value={formData.payment_type} onChange={(e) => setFormData({ ...formData, payment_type: e.target.value, plan_id: '', amount: 0 })}>
                       <option value="membership">Membership</option>
                       <option value="registration">Registration</option>
                       <option value="personal_training">Personal Training</option>
@@ -502,6 +614,22 @@ export default function GymPaymentsPage() {
                       <option value="other">Other</option>
                     </select>
                   </div>
+                  {formData.payment_type === 'membership' && (
+                    <div className="form-group">
+                      <label>Membership Plan</label>
+                      <select
+                        value={formData.plan_id}
+                        onChange={(e) => setFormData({ ...formData, plan_id: e.target.value })}
+                      >
+                        <option value="">Select Plan</option>
+                        {membershipPlans.map((plan) => (
+                          <option key={plan.id} value={plan.id}>
+                            {plan.name} - PKR {plan.price.toLocaleString()}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   <div className="form-group">
                     <label>Payment Date *</label>
                     <input type="date" required value={formData.payment_date}

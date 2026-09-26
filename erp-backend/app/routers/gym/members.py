@@ -1,9 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import Optional
 from pydantic import BaseModel
 from datetime import date, datetime
 from sqlalchemy.exc import IntegrityError
+import os
+import uuid
+from pathlib import Path
 
 from app.core.database import get_db
 from app.core.auth_dependencies import require_role
@@ -13,6 +16,13 @@ from app.services.member_code_service import generate_member_code
 router = APIRouter(prefix="/members", tags=["Members"])
 
 STAFF_ROLES = ["super_admin", "gym_owner", "manager", "receptionist", "trainer"]
+
+# Member photo upload configuration
+UPLOAD_DIR = Path("uploads/member_photos")
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 
 
 def _serialize(m: GymMember) -> dict:
@@ -54,6 +64,7 @@ class MemberCreate(BaseModel):
     whatsapp: Optional[str] = None
     email: Optional[str] = None
     address: Optional[str] = None
+    profile_picture: Optional[str] = None
     emergency_contact_name: Optional[str] = None
     emergency_contact_phone: Optional[str] = None
     emergency_contact_relation: Optional[str] = None
@@ -82,6 +93,7 @@ class MemberUpdate(BaseModel):
     whatsapp: Optional[str] = None
     email: Optional[str] = None
     address: Optional[str] = None
+    profile_picture: Optional[str] = None
     emergency_contact_name: Optional[str] = None
     emergency_contact_phone: Optional[str] = None
     emergency_contact_relation: Optional[str] = None
@@ -95,6 +107,7 @@ class MemberUpdate(BaseModel):
     rfid_number: Optional[str] = None
     biometric_user_id: Optional[str] = None
     assigned_trainer_id: Optional[int] = None
+    joining_date: Optional[date] = None
     status: Optional[MemberStatus] = None
     notes: Optional[str] = None
     is_active: Optional[bool] = None
@@ -133,6 +146,43 @@ def list_members(
     total = q.count()
     items = q.order_by(GymMember.created_at.desc()).offset((page - 1) * page_size).limit(page_size).all()
     return {"total": total, "page": page, "page_size": page_size, "items": [_serialize(m) for m in items]}
+
+
+@router.post("/upload-photo/")
+async def upload_member_photo(
+    file: UploadFile = File(...),
+    _=Depends(require_role(STAFF_ROLES))
+):
+    """Upload a member profile photo"""
+    # Validate file extension
+    file_ext = Path(file.filename).suffix.lower()
+    if file_ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type. Allowed: {', '.join(ALLOWED_EXTENSIONS)}"
+        )
+    
+    # Validate file size
+    file_content = await file.read()
+    if len(file_content) > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File too large. Maximum size: {MAX_FILE_SIZE // (1024*1024)}MB"
+        )
+    
+    # Generate unique filename
+    unique_filename = f"{uuid.uuid4()}{file_ext}"
+    file_path = UPLOAD_DIR / unique_filename
+    
+    # Save file
+    try:
+        with open(file_path, "wb") as f:
+            f.write(file_content)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
+    
+    # Return the URL path
+    return {"photo_url": f"/uploads/member_photos/{unique_filename}"}
 
 
 @router.get("/{member_id}/")

@@ -28,7 +28,9 @@ def overview(
     today = date.today()
 
     def _filter(q, model):
-        if branch_id and hasattr(model, "branch_id"):
+        if hasattr(model, "deleted_at"):
+            q = q.filter(model.deleted_at.is_(None))
+        if branch_id is not None and hasattr(model, "branch_id"):
             q = q.filter(model.branch_id == branch_id)
         return q
 

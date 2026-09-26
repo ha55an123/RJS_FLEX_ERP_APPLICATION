@@ -126,10 +126,36 @@ def assign_diet(data: AssignDiet, db: Session = Depends(get_db), _=Depends(requi
 
 @router.get("/member/{member_id}/plan")
 def member_diet(member_id: int, db: Session = Depends(get_db), _=Depends(require_role(STAFF_ROLES))):
-    return db.query(MemberDietPlan).filter(
+    assignment = db.query(MemberDietPlan).filter(
         MemberDietPlan.member_id == member_id,
         MemberDietPlan.is_active == True,  # noqa: E712
     ).first()
+    if not assignment:
+        return None
+    
+    # Get the meal plan with all items
+    plan = db.query(MealPlan).filter(MealPlan.id == assignment.meal_plan_id).first()
+    if not plan:
+        return None
+    
+    # Get meal items grouped by meal type
+    items = db.query(MealPlanItem).filter(
+        MealPlanItem.meal_plan_id == plan.id
+    ).order_by(MealPlanItem.order_index).all()
+    
+    # Group items by meal type
+    items_by_meal_type = {}
+    for item in items:
+        meal_type = item.meal_type
+        if meal_type not in items_by_meal_type:
+            items_by_meal_type[meal_type] = []
+        items_by_meal_type[meal_type].append(item)
+    
+    return {
+        "assignment": assignment,
+        "plan": plan,
+        "items_by_meal_type": items_by_meal_type,
+    }
 
 
 @router.post("/nutrition-log", status_code=status.HTTP_201_CREATED)

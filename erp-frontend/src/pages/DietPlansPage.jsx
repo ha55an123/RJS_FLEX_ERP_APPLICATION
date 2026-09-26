@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { dietAPI } from '../api/gym/diet';
 import { membersAPI } from '../api/gym/members';
-import { Plus, Search, Edit, Trash2, Apple, User, Calendar } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Apple, User, Calendar, Printer, Eye } from 'lucide-react';
 
 export default function DietPlansPage() {
   const [dietPlans, setDietPlans] = useState([]);
@@ -11,8 +11,10 @@ export default function DietPlansPage() {
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [showMealModal, setShowMealModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showPlanDetailModal, setShowPlanDetailModal] = useState(false);
   const [editingPlan, setEditingPlan] = useState(null);
   const [editingMeal, setEditingMeal] = useState(null);
+  const [selectedPlan, setSelectedPlan] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('plans');
   const [planFormData, setPlanFormData] = useState({
@@ -159,6 +161,89 @@ export default function DietPlansPage() {
     }
   };
 
+  const handleViewPlan = async (plan) => {
+    try {
+      const response = await dietAPI.getPlanById(plan.id);
+      setSelectedPlan(response.data);
+      setShowPlanDetailModal(true);
+    } catch (error) {
+      console.error('Failed to load plan details:', error);
+    }
+  };
+
+  const handlePrintPlan = () => {
+    if (!selectedPlan) return;
+    
+    let mealsHtml = '';
+    if (selectedPlan.items && selectedPlan.items.length > 0) {
+      const itemsByMealType = {};
+      selectedPlan.items.forEach(item => {
+        const mealType = item.meal_type;
+        if (!itemsByMealType[mealType]) itemsByMealType[mealType] = [];
+        itemsByMealType[mealType].push(item);
+      });
+      
+      Object.entries(itemsByMealType).forEach(([mealType, items]) => {
+        mealsHtml += `
+          <h3 style="margin-top: 20px; color: #1a1a2e; text-transform: capitalize;">${mealType.replace('_', ' ')}</h3>
+          <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+            <thead>
+              <tr style="background: #f3f4f6;">
+                <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Food Item</th>
+                <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Quantity</th>
+                <th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Calories</th>
+                <th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Protein</th>
+                <th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Carbs</th>
+                <th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Fat</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${items.map(item => `
+                <tr>
+                  <td style="padding: 8px; border: 1px solid #ddd;">${item.food_name || 'N/A'}</td>
+                  <td style="padding: 8px; border: 1px solid #ddd;">${item.quantity || '-'}</td>
+                  <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">${item.calories || 0} kcal</td>
+                  <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">${item.protein_g || 0}g</td>
+                  <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">${item.carbs_g || 0}g</td>
+                  <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">${item.fat_g || 0}g</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      });
+    }
+
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Diet Plan - ${selectedPlan.name}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h1 { color: #1a1a2e; }
+            h2 { color: #333; margin-top: 20px; }
+            .info { margin: 10px 0; }
+            .label { font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <h1>RJS FLEX GYM</h1>
+          <h2>DIET PLAN</h2>
+          <div class="info"><span class="label">Plan:</span> ${selectedPlan.name}</div>
+          <div class="info"><span class="label">Description:</span> ${selectedPlan.description || 'N/A'}</div>
+          <div class="info"><span class="label">Goal:</span> ${selectedPlan.goal || 'N/A'}</div>
+          <div class="info"><span class="label">Daily Calories:</span> ${selectedPlan.total_calories || 0} kcal</div>
+          <div class="info"><span class="label">Macros:</span> Protein: ${selectedPlan.protein_g || 0}g | Carbs: ${selectedPlan.carbs_g || 0}g | Fat: ${selectedPlan.fat_g || 0}g</div>
+          <div class="info"><span class="label">Water:</span> ${selectedPlan.water_liters || 0} liters/day</div>
+          ${mealsHtml}
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
   const handleAssign = (plan) => {
     setAssignFormData({
       ...assignFormData,
@@ -250,6 +335,9 @@ export default function DietPlansPage() {
                 <p>Macro: P:{plan.protein_grams || 0}g C:{plan.carbs_grams || 0}g F:{plan.fats_grams || 0}g</p>
               </div>
               <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
+                <button onClick={() => handleViewPlan(plan)} className="text-gray-600 hover:text-gray-800" title="View Plan">
+                  <Eye size={18} />
+                </button>
                 <button onClick={() => handleAssign(plan)} className="text-green-600 hover:text-green-800" title="Assign to Member">
                   <User size={18} />
                 </button>
@@ -579,6 +667,109 @@ export default function DietPlansPage() {
                   <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Assign</button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPlanDetailModal && selectedPlan && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold">{selectedPlan.name}</h2>
+                <div className="flex gap-2">
+                  <button onClick={handlePrintPlan} className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">
+                    <Printer size={18} />
+                    Print
+                  </button>
+                  <button onClick={() => setShowPlanDetailModal(false)} className="px-4 py-2 border rounded-lg hover:bg-gray-100">Close</button>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                  <span className="text-sm text-gray-500">Goal</span>
+                  <p className="font-medium capitalize">{selectedPlan.goal || 'N/A'}</p>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-500">Daily Calories</span>
+                  <p className="font-medium">{selectedPlan.total_calories || 0} kcal</p>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-500">Protein</span>
+                  <p className="font-medium">{selectedPlan.protein_g || 0}g</p>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-500">Carbohydrates</span>
+                  <p className="font-medium">{selectedPlan.carbs_g || 0}g</p>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-500">Fat</span>
+                  <p className="font-medium">{selectedPlan.fat_g || 0}g</p>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-500">Water</span>
+                  <p className="font-medium">{selectedPlan.water_liters || 0} liters/day</p>
+                </div>
+              </div>
+              
+              {selectedPlan.description && (
+                <div className="mb-6">
+                  <span className="text-sm text-gray-500">Description</span>
+                  <p className="font-medium">{selectedPlan.description}</p>
+                </div>
+              )}
+
+              {selectedPlan.items && selectedPlan.items.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-bold mb-4">Daily Meal Schedule</h3>
+                  <div className="space-y-6">
+                    {(() => {
+                      const itemsByMealType = {};
+                      selectedPlan.items.forEach(item => {
+                        const mealType = item.meal_type;
+                        if (!itemsByMealType[mealType]) itemsByMealType[mealType] = [];
+                        itemsByMealType[mealType].push(item);
+                      });
+                      
+                      return Object.entries(itemsByMealType).map(([mealType, items]) => (
+                        <div key={mealType} className="border rounded-lg p-4">
+                          <h4 className="font-bold text-lg mb-3 capitalize">{mealType.replace('_', ' ')}</h4>
+                          {items.length === 0 ? (
+                            <p className="text-gray-500 italic">No meals scheduled</p>
+                          ) : (
+                            <table className="w-full">
+                              <thead>
+                                <tr className="bg-gray-50">
+                                  <th className="px-3 py-2 text-left text-sm">Food Item</th>
+                                  <th className="px-3 py-2 text-left text-sm">Quantity</th>
+                                  <th className="px-3 py-2 text-center text-sm">Calories</th>
+                                  <th className="px-3 py-2 text-center text-sm">Protein</th>
+                                  <th className="px-3 py-2 text-center text-sm">Carbs</th>
+                                  <th className="px-3 py-2 text-center text-sm">Fat</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {items.map((item, idx) => (
+                                  <tr key={idx} className="border-t">
+                                    <td className="px-3 py-2 font-medium">{item.food_name || 'N/A'}</td>
+                                    <td className="px-3 py-2">{item.quantity || '-'}</td>
+                                    <td className="px-3 py-2 text-center">{item.calories || 0} kcal</td>
+                                    <td className="px-3 py-2 text-center">{item.protein_g || 0}g</td>
+                                    <td className="px-3 py-2 text-center">{item.carbs_g || 0}g</td>
+                                    <td className="px-3 py-2 text-center">{item.fat_g || 0}g</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )}
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

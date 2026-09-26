@@ -6,6 +6,7 @@ services:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: "12345"
       POSTGRES_DB: erp_db
+      TZ: UTC
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -22,8 +23,12 @@ services:
         condition: service_healthy
     env_file:
       - ./erp-backend/.env
+    environment:
+      TZ: UTC
     ports:
       - "127.0.0.1:9000:8000"
+    volumes:
+      - uploads:/app/uploads
 
   erp-frontend:
     build: ./erp-frontend
@@ -35,3 +40,4 @@ services:
 
 volumes:
   pgdata:
+  uploads:

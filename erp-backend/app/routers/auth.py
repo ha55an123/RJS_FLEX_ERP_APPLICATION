@@ -99,6 +99,7 @@ def verify_otp(email: str, otp: str, db: Session = Depends(get_db)):
             "sub": user.email,
             "role": user.role.value,
             "name": _display_name(user),
+            "branch_id": user.employee.branch_id if user.employee else None,
         }),
         "refresh_token": create_refresh_token({"sub": user.email}),
         "token_type": "bearer",
@@ -113,6 +114,7 @@ def get_me(current_user: User = Depends(get_current_user)):
         "role": current_user.role.value,
         "name": _display_name(current_user),
         "is_active": current_user.is_active,
+        "branch_id": current_user.employee.branch_id if current_user.employee else None,
     }
 
 
@@ -130,6 +132,7 @@ def refresh(token: str, db: Session = Depends(get_db)):
         "sub": user.email,
         "role": user.role.value,
         "name": _display_name(user),
+        "branch_id": user.employee.branch_id if user.employee else None,
     })}
 
 

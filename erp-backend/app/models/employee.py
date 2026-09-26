@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, Float, Date, DateTime, event
+from sqlalchemy import Column, Integer, String, Boolean, Float, Date, DateTime, event, ForeignKey
 from sqlalchemy.orm import validates
 from app.core.database import Base
 from datetime import datetime
@@ -20,5 +20,6 @@ class Employee(Base):
     status = Column(String, nullable=False, default="active")  # active | inactive
     is_active = Column(Boolean, nullable=False, default=True)
     notes = Column(String, nullable=True)
+    branch_id = Column(Integer, ForeignKey("branches.id"), nullable=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

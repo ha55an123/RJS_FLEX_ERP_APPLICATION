@@ -2,6 +2,8 @@ from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -121,6 +123,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount uploads directory for static file serving
+uploads_dir = Path("uploads")
+uploads_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(uploads_dir)), name="uploads")
 
 
 @app.exception_handler(RequestValidationError)

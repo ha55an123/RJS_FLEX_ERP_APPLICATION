@@ -41,5 +41,6 @@ export function userFromToken(token) {
     email: decoded.sub,
     role: decoded.role?.toLowerCase(),
     name: decoded.name || decoded.sub,
+    branch_id: decoded.branch_id || null,
   };
 }

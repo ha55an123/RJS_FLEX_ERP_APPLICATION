@@ -180,10 +180,37 @@ def assign_plan(data: AssignPlan, db: Session = Depends(get_db), _=Depends(requi
 
 @router.get("/member/{member_id}/plan")
 def member_plan(member_id: int, db: Session = Depends(get_db), _=Depends(require_role(STAFF_ROLES))):
-    return db.query(MemberWorkoutPlan).filter(
+    assignment = db.query(MemberWorkoutPlan).filter(
         MemberWorkoutPlan.member_id == member_id,
         MemberWorkoutPlan.is_active == True,  # noqa: E712
     ).first()
+    if not assignment:
+        return None
+    
+    # Get the plan with all exercises
+    plan = db.query(WorkoutPlan).filter(WorkoutPlan.id == assignment.plan_id).first()
+    if not plan:
+        return None
+    
+    # Get exercises grouped by day
+    exercises = db.query(WorkoutPlanExercise).filter(
+        WorkoutPlanExercise.plan_id == plan.id
+    ).order_by(WorkoutPlanExercise.day_number, WorkoutPlanExercise.order_index).all()
+    
+    # Group exercises by day
+    day_names = {1: 'Monday', 2: 'Tuesday', 3: 'Wednesday', 4: 'Thursday', 5: 'Friday', 6: 'Saturday', 7: 'Sunday'}
+    exercises_by_day = {}
+    for ex in exercises:
+        day_name = day_names.get(ex.day_number, f'Day {ex.day_number}')
+        if day_name not in exercises_by_day:
+            exercises_by_day[day_name] = []
+        exercises_by_day[day_name].append(ex)
+    
+    return {
+        "assignment": assignment,
+        "plan": plan,
+        "exercises_by_day": exercises_by_day,
+    }
 
 
 # ── Progress Tracking ─────────────────────────────────────────────────────────

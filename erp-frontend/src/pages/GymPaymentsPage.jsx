@@ -246,12 +246,12 @@ export default function GymPaymentsPage() {
         <meta charset="UTF-8">
         <style>
           @page {
-            size: 80mm 297mm;
+            size: 80mm auto;
             margin: 0;
           }
           @media print {
             @page {
-              size: 80mm 297mm;
+              size: 80mm auto;
               margin: 0;
             }
             body {
@@ -272,87 +272,91 @@ export default function GymPaymentsPage() {
           }
           .logo {
             text-align: center;
-            margin-bottom: 2px;
+            margin-bottom: 1px;
           }
           .logo img {
-            max-width: 50mm;
+            max-width: 45mm;
             height: auto;
           }
           .business-name {
             text-align: center;
-            font-size: 14px;
+            font-size: 15px;
             font-weight: bold;
-            margin: 2px 0;
+            margin: 1px 0;
             text-transform: uppercase;
           }
           .receipt-title {
             text-align: center;
-            font-size: 11px;
+            font-size: 12px;
             font-weight: bold;
-            margin: 2px 0;
+            margin: 1px 0;
             text-transform: uppercase;
           }
           .receipt-number {
             text-align: center;
             font-size: 9px;
-            margin: 2px 0;
+            margin: 1px 0;
           }
           .contact-info {
             text-align: center;
-            font-size: 8px;
-            margin: 4px 0;
-            line-height: 1.3;
+            font-size: 9px;
+            margin: 2px 0;
+            line-height: 1.2;
           }
           .divider {
             border-top: 1px dashed #000;
-            margin: 6px 0;
+            margin: 3px 0;
           }
           .section-title {
-            font-size: 9px;
+            font-size: 11px;
             font-weight: bold;
-            margin: 4px 0 3px 0;
+            margin: 2px 0 2px 0;
             text-transform: uppercase;
           }
           .row {
             display: flex;
             justify-content: space-between;
-            margin: 2px 0;
-            line-height: 1.3;
+            margin: 1px 0;
+            line-height: 1.2;
           }
           .row span:first-child {
             font-weight: 600;
-            font-size: 9px;
+            font-size: 10px;
           }
           .row span:last-child {
             text-align: right;
-            font-size: 9px;
+            font-size: 10px;
           }
           .amount-row {
             display: flex;
             justify-content: space-between;
-            margin: 3px 0;
-            line-height: 1.3;
+            margin: 1px 0;
+            line-height: 1.2;
+          }
+          .amount-row span:first-child {
+            font-size: 10px;
           }
           .amount-row span:last-child {
             font-weight: bold;
+            font-size: 10px;
           }
           .total-row {
             display: flex;
             justify-content: space-between;
-            margin: 6px 0;
-            padding-top: 4px;
+            margin: 3px 0;
+            padding-top: 2px;
             border-top: 2px solid #000;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: bold;
           }
           .footer {
             text-align: center;
-            margin-top: 8px;
-            font-size: 8px;
-            line-height: 1.3;
+            margin-top: 4px;
+            font-size: 9px;
+            line-height: 1.2;
           }
           .footer p {
-            margin: 2px 0;
+            margin: 1px 0;
           }
           * {
             -webkit-print-color-adjust: exact;
@@ -394,7 +398,7 @@ export default function GymPaymentsPage() {
         <div class="total-row"><span>TOTAL:</span><span>PKR ${Number(total).toLocaleString()}</span></div>
         <div class="divider"></div>
         <div class="footer">
-          <p style="font-weight: bold; font-size: 9px; margin: 6px 0;">ALL FUNDS ARE NON REFUNDABLE</p>
+          <p style="font-weight: bold; font-size: 11px; margin: 6px 0;">ALL FUNDS ARE NON REFUNDABLE</p>
           <p>Thank you for your payment!</p>
           <p>RJS Flex Gym</p>
           <p>www.rjsflexgym.com</p>

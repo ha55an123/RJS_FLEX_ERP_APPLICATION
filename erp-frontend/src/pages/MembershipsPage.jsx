@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { membershipsAPI, membershipPlansAPI } from '../api/gym/memberships';
 import { discountsAPI } from '../api/gym/discounts';
-import { Plus, Search, RefreshCw, PauseCircle, PlayCircle, Trash2 } from 'lucide-react';
+import { Plus, Search, RefreshCw, PauseCircle, PlayCircle, Trash2, Edit } from 'lucide-react';
 import Toast from '../components/Toast';
 
 function calcDiscountAmount(discount, baseAmount) {
@@ -257,6 +257,26 @@ export default function MembershipsPage() {
     }
   };
 
+  const handleEditPlan = (plan) => {
+    setEditingPlan(plan);
+    setPlanFormData({
+      name: plan.name || '',
+      description: plan.description || '',
+      duration_type: plan.duration_type || 'monthly',
+      duration_days: plan.duration_days || 30,
+      price: plan.price || 0,
+      joining_fee: plan.joining_fee || 0,
+      tax_percent: plan.tax_percent || 0,
+      discount_percent: plan.discount_percent || 0,
+      admission_discount_percent: plan.admission_discount_percent || 0,
+      monthly_discount_percent: plan.monthly_discount_percent || 0,
+      freeze_allowed: plan.freeze_allowed || false,
+      max_freeze_days: plan.max_freeze_days || 30,
+      auto_renewal: plan.auto_renewal || false,
+    });
+    setShowPlanModal(true);
+  };
+
   const filteredSubscriptions = subscriptions.filter(s =>
     `${s.member_name || ''} ${s.member_code || ''}`.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -351,7 +371,12 @@ export default function MembershipsPage() {
                   <td>PKR {(plan.joining_fee || 0).toLocaleString()}</td>
                   <td>{plan.admission_discount_percent || 0}%</td>
                   <td><span className={`status-badge ${plan.is_active ? 'success' : 'danger'}`}>{plan.is_active ? 'Active' : 'Inactive'}</span></td>
-                  <td><button onClick={() => handleDeletePlan(plan.id)} className="icon-btn icon-btn-danger"><Trash2 size={16} /></button></td>
+                  <td>
+                    <div className="action-buttons">
+                      <button onClick={() => handleEditPlan(plan)} className="icon-btn" title="Edit"><Edit size={16} /></button>
+                      <button onClick={() => handleDeletePlan(plan.id)} className="icon-btn icon-btn-danger"><Trash2 size={16} /></button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>

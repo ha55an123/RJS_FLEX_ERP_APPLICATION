@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { gymDashboardAPI } from '../api/gym/dashboard';
 import { useAuth } from '../context/AuthContext';
@@ -7,78 +7,54 @@ import slide1 from '../assets/athletic-muscular-man-training-gymnastics-gym.jpg'
 import slide2 from '../assets/pexels-totalshape-6046979.jpg';
 import slide3 from '../assets/strong-man-training-gym.jpg';
 
+// Move slides outside component to prevent recreation on every render
+const SLIDES = [
+  {
+    title: 'Welcome to RJS FLEX',
+    subtitle: 'Manage your gym smarter',
+    image: slide1,
+    gradient: 'linear-gradient(135deg, rgba(26,26,46,0.85) 0%, rgba(22,33,62,0.85) 50%, rgba(15,52,96,0.85) 100%)',
+    accent: '#eab308'
+  },
+  {
+    title: 'Track Your Progress',
+    subtitle: 'Monitor member attendance and performance',
+    image: slide2,
+    gradient: 'linear-gradient(135deg, rgba(26,26,46,0.85) 0%, rgba(45,27,78,0.85) 50%, rgba(74,28,107,0.85) 100%)',
+    accent: '#f59e0b'
+  },
+  {
+    title: 'Grow Your Business',
+    subtitle: 'Streamline payments and memberships',
+    image: slide3,
+    gradient: 'linear-gradient(135deg, rgba(26,26,46,0.85) 0%, rgba(27,67,50,0.85) 50%, rgba(45,106,79,0.85) 100%)',
+    accent: '#10b981'
+  }
+];
+
 export default function GymDashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [overview, setOverview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
-
-  const slides = [
-    {
-      title: 'Welcome to RJS FLEX',
-      subtitle: 'Manage your gym smarter',
-      image: slide1,
-      gradient: 'linear-gradient(135deg, rgba(26,26,46,0.85) 0%, rgba(22,33,62,0.85) 50%, rgba(15,52,96,0.85) 100%)',
-      accent: '#eab308'
-    },
-    {
-      title: 'Track Your Progress',
-      subtitle: 'Monitor member attendance and performance',
-      image: slide2,
-      gradient: 'linear-gradient(135deg, rgba(26,26,46,0.85) 0%, rgba(45,27,78,0.85) 50%, rgba(74,28,107,0.85) 100%)',
-      accent: '#f59e0b'
-    },
-    {
-      title: 'Grow Your Business',
-      subtitle: 'Streamline payments and memberships',
-      image: slide3,
-      gradient: 'linear-gradient(135deg, rgba(26,26,46,0.85) 0%, rgba(27,67,50,0.85) 50%, rgba(45,106,79,0.85) 100%)',
-      accent: '#10b981'
-    }
-  ];
+  const isLoadingRef = useRef(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
+      setCurrentSlide((prev) => (prev + 1) % SLIDES.length);
     }, 5000);
     return () => clearInterval(interval);
   }, []);
 
-  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
-  const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % SLIDES.length);
+  const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + SLIDES.length) % SLIDES.length);
 
-  useEffect(() => {
-    loadDashboard();
-  }, []);
-
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        loadDashboard();
-      }
-    };
-
-    const handleFocus = () => {
-      loadDashboard();
-    };
-
-    const handleMemberDataChanged = () => {
-      loadDashboard();
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-    window.addEventListener('memberDataChanged', handleMemberDataChanged);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-      window.removeEventListener('memberDataChanged', handleMemberDataChanged);
-    };
-  }, []);
-
-  const loadDashboard = async () => {
+  const loadDashboard = useCallback(async () => {
+    // Prevent concurrent requests
+    if (isLoadingRef.current) return;
+    isLoadingRef.current = true;
+    
     try {
       // Only pass branch_id for non-super_admin users
       const branchId = user?.role === 'super_admin' ? undefined : user?.branch_id;
@@ -87,9 +63,54 @@ export default function GymDashboardPage() {
     } catch (error) {
       console.error('Failed to load dashboard:', error);
     } finally {
+      isLoadingRef.current = false;
       setLoading(false);
     }
-  };
+  }, [user?.role, user?.branch_id]);
+
+  // Initial load
+  useEffect(() => {
+    loadDashboard();
+  }, [loadDashboard]);
+
+  // Event listeners for refresh (debounced to prevent loops)
+  useEffect(() => {
+    let refreshTimeout = null;
+    
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        clearTimeout(refreshTimeout);
+        refreshTimeout = setTimeout(() => {
+          loadDashboard();
+        }, 500);
+      }
+    };
+
+    const handleFocus = () => {
+      clearTimeout(refreshTimeout);
+      refreshTimeout = setTimeout(() => {
+        loadDashboard();
+      }, 500);
+    };
+
+    const handleMemberDataChanged = () => {
+      clearTimeout(refreshTimeout);
+      refreshTimeout = setTimeout(() => {
+        loadDashboard();
+      }, 500);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('memberDataChanged', handleMemberDataChanged);
+
+    return () => {
+      clearTimeout(refreshTimeout);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('memberDataChanged', handleMemberDataChanged);
+    };
+  }, [loadDashboard]);
 
   if (loading) {
     return <div className="page-loading">Loading gym dashboard...</div>;
@@ -107,17 +128,19 @@ export default function GymDashboardPage() {
   ];
 
   return (
-    <div className="page">
+    <div className="page" style={{ overflowX: 'hidden' }}>
       {/* Hero Slider */}
       <div style={{
         position: 'relative',
-        height: '280px',
+        height: '200px',
         borderRadius: '16px',
         overflow: 'hidden',
         marginBottom: '1.5rem',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
+        boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+        width: '100%',
+        maxWidth: '100%'
       }}>
-        {slides.map((slide, index) => (
+        {SLIDES.map((slide, index) => (
           <div
             key={index}
             style={{
@@ -134,6 +157,7 @@ export default function GymDashboardPage() {
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
+                maxWidth: '100%'
               }}
               onError={(e) => {
                 e.target.style.display = 'none';
@@ -148,22 +172,24 @@ export default function GymDashboardPage() {
                 flexDirection: 'column',
                 justifyContent: 'center',
                 alignItems: 'center',
-                padding: '2rem'
+                padding: '1rem'
               }}
             >
               <h1 style={{
-                fontSize: '2.5rem',
+                fontSize: '1.5rem',
                 fontWeight: 'bold',
                 color: '#fff',
-                marginBottom: '0.5rem',
-                textShadow: '0 2px 10px rgba(0,0,0,0.3)'
+                marginBottom: '0.25rem',
+                textShadow: '0 2px 10px rgba(0,0,0,0.3)',
+                textAlign: 'center'
               }}>
                 {slide.title}
               </h1>
               <p style={{
-                fontSize: '1.2rem',
+                fontSize: '0.9rem',
                 color: 'rgba(255,255,255,0.9)',
-                textShadow: '0 1px 5px rgba(0,0,0,0.3)'
+                textShadow: '0 1px 5px rgba(0,0,0,0.3)',
+                textAlign: 'center'
               }}>
                 {slide.subtitle}
               </p>
@@ -230,7 +256,7 @@ export default function GymDashboardPage() {
           display: 'flex',
           gap: '0.5rem'
         }}>
-          {slides.map((_, index) => (
+          {SLIDES.map((_, index) => (
             <div
               key={index}
               onClick={() => setCurrentSlide(index)}
@@ -252,7 +278,13 @@ export default function GymDashboardPage() {
         <p>Welcome back! Here's your gym overview.</p>
       </div>
 
-      <div className="kpi-grid">
+      <div className="kpi-grid" style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+        gap: '1rem',
+        marginBottom: '1.5rem',
+        width: '100%'
+      }}>
         {stats.map((stat, index) => (
           <div
             key={index}
@@ -289,7 +321,13 @@ export default function GymDashboardPage() {
         ))}
       </div>
 
-      <div className="charts-grid">
+      <div className="charts-grid" style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+        gap: '1.25rem',
+        marginBottom: '2rem',
+        width: '100%'
+      }}>
         <div className="chart-card" style={{
           background: 'linear-gradient(135deg, rgba(30,30,40,0.9) 0%, rgba(20,20,30,0.95) 100%)',
           border: '1px solid rgba(234,179,8,0.2)',

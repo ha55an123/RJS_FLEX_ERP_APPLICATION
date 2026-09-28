@@ -60,6 +60,8 @@ class PlanCreate(BaseModel):
 class PlanUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
+    duration_type: Optional[PlanDuration] = None
+    duration_days: Optional[int] = None
     price: Optional[float] = None
     tax_percent: Optional[float] = None
     joining_fee: Optional[float] = None

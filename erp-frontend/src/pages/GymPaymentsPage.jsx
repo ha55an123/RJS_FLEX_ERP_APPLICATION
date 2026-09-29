@@ -247,28 +247,30 @@ export default function GymPaymentsPage() {
         <style>
           @page {
             size: 80mm auto;
-            margin: 0;
+            margin: 3mm 5mm;
           }
           @media print {
             @page {
               size: 80mm auto;
-              margin: 0;
+              margin: 3mm 5mm;
             }
             body {
-              width: 80mm;
-              margin: 0;
+              width: 70mm;
+              margin: 0 auto;
               padding: 2mm;
               font-size: 10px;
               font-family: Arial, sans-serif;
+              box-sizing: border-box;
             }
           }
           body {
             font-family: Arial, sans-serif;
-            width: 80mm;
-            margin: 0;
+            width: 70mm;
+            margin: 0 auto;
             padding: 2mm;
             font-size: 10px;
             background: white;
+            box-sizing: border-box;
           }
           .logo {
             text-align: center;

@@ -241,48 +241,82 @@ export default function GymPaymentsPage() {
     const membershipAmount = registrationFee > 0 ? subtotal - registrationFee : subtotal;
 
     printWindow.document.write(`
-      <!DOCTYPE html><html><head>
+      <!DOCTYPE html>
+      <html>
+      <head>
         <title>Payment Receipt</title>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
           @page {
-            size: 80mm auto;
-            margin: 3mm 5mm;
+            size: 80mm auto !important;
+            margin: 0 !important;
           }
           @media print {
             @page {
-              size: 80mm auto;
-              margin: 3mm 5mm;
+              size: 80mm auto !important;
+              margin: 0 !important;
+            }
+            * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            html {
+              width: 80mm !important;
+              min-width: 80mm !important;
+              max-width: 80mm !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              overflow: visible !important;
             }
             body {
-              width: 70mm;
-              margin: 0 auto;
-              padding: 2mm;
-              font-size: 10px;
-              font-family: Arial, sans-serif;
-              box-sizing: border-box;
+              width: 80mm !important;
+              min-width: 80mm !important;
+              max-width: 80mm !important;
+              margin: 0 !important;
+              padding: 3mm !important;
+              background: #ffffff !important;
+              color: #000000 !important;
+              font-family: "Courier New", Courier, monospace !important;
+              font-size: 10.5px !important;
+              line-height: 1.35 !important;
+              box-sizing: border-box !important;
+              overflow: visible !important;
             }
           }
+          html {
+            width: 80mm;
+            min-width: 80mm;
+            max-width: 80mm;
+            margin: 0;
+            padding: 0;
+            background: #ffffff;
+          }
           body {
-            font-family: Arial, sans-serif;
-            width: 70mm;
+            font-family: "Courier New", Courier, monospace;
+            color: #000000;
+            width: 80mm;
+            min-width: 80mm;
+            max-width: 80mm;
             margin: 0 auto;
-            padding: 2mm;
-            font-size: 10px;
+            padding: 3mm;
             background: white;
             box-sizing: border-box;
+            font-size: 10.5px;
+            line-height: 1.35;
           }
           .logo {
             text-align: center;
-            margin-bottom: 1px;
+            margin-bottom: 2mm;
           }
           .logo img {
-            max-width: 45mm;
+            max-width: 58mm;
+            width: auto;
             height: auto;
           }
           .business-name {
             text-align: center;
-            font-size: 15px;
+            font-size: 14px;
             font-weight: bold;
             margin: 1px 0;
             text-transform: uppercase;
@@ -306,7 +340,7 @@ export default function GymPaymentsPage() {
             line-height: 1.2;
           }
           .divider {
-            border-top: 1px dashed #000;
+            border-top: 1px dashed #000000;
             margin: 3px 0;
           }
           .section-title {
@@ -319,36 +353,42 @@ export default function GymPaymentsPage() {
             display: flex;
             justify-content: space-between;
             margin: 1px 0;
-            line-height: 1.2;
+            line-height: 1.35;
           }
           .row span:first-child {
             font-weight: 600;
-            font-size: 10px;
+            font-size: 10.5px;
+            overflow-wrap: anywhere;
+            word-break: break-word;
           }
           .row span:last-child {
             text-align: right;
-            font-size: 10px;
+            font-size: 10.5px;
+            flex-shrink: 0;
           }
           .amount-row {
             display: flex;
             justify-content: space-between;
             margin: 1px 0;
-            line-height: 1.2;
+            line-height: 1.35;
           }
           .amount-row span:first-child {
-            font-size: 10px;
+            font-size: 10.5px;
+            overflow-wrap: anywhere;
+            word-break: break-word;
           }
           .amount-row span:last-child {
             font-weight: bold;
-            font-size: 10px;
+            font-size: 10.5px;
+            flex-shrink: 0;
           }
           .total-row {
             display: flex;
             justify-content: space-between;
             margin: 3px 0;
             padding-top: 2px;
-            border-top: 2px solid #000;
-            font-size: 13px;
+            border-top: 2px solid #000000;
+            font-size: 12px;
             font-weight: bold;
           }
           .footer {
@@ -360,12 +400,9 @@ export default function GymPaymentsPage() {
           .footer p {
             margin: 1px 0;
           }
-          * {
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-          }
         </style>
-      </head><body>
+      </head>
+      <body>
         <div class="logo">
           <img src="/rjs-billrecipt-logo.jpeg" alt="RJS Flex Gym Logo" />
         </div>

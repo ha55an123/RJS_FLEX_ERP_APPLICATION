@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session, joinedload
 from typing import Optional
 from pydantic import BaseModel
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 import random, string
 
 from app.core.database import get_db
@@ -17,7 +17,7 @@ MANAGER_ROLES = ["super_admin", "gym_owner", "manager", "accountant"]
 
 def _gen_payment_number(db: Session) -> str:
     while True:
-        num = "PAY-" + datetime.utcnow().strftime("%Y%m%d") + "-" + "".join(random.choices(string.digits, k=4))
+        num = "PAY-" + datetime.now(timezone.utc).strftime("%Y%m%d") + "-" + "".join(random.choices(string.digits, k=4))
         if not db.query(GymPayment).filter(GymPayment.payment_number == num).first():
             return num
 
@@ -49,6 +49,15 @@ class PaymentUpdate(BaseModel):
 
 
 def _serialize_payment(payment: GymPayment) -> dict:
+    def serialize_datetime(dt):
+        if dt is None:
+            return None
+        # Ensure datetime is timezone-aware UTC
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        # Return ISO format with UTC timezone indicator
+        return dt.isoformat()
+    
     return {
         "id": payment.id,
         "payment_number": payment.payment_number,
@@ -68,8 +77,8 @@ def _serialize_payment(payment: GymPayment) -> dict:
         "status": payment.status,
         "notes": payment.notes,
         "received_by": payment.received_by,
-        "created_at": payment.created_at.isoformat() if payment.created_at else None,
-        "updated_at": payment.updated_at.isoformat() if payment.updated_at else None,
+        "created_at": serialize_datetime(payment.created_at),
+        "updated_at": serialize_datetime(payment.updated_at),
     }
 
 
@@ -176,7 +185,7 @@ def update_payment(
     for key, value in updates.items():
         setattr(payment, key, value)
     payment.total_amount = round(payment.amount + payment.tax_amount - payment.discount_amount, 2)
-    payment.updated_at = datetime.utcnow()
+    payment.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(payment)
     return _serialize_payment(payment)
@@ -208,7 +217,7 @@ def refund_payment(
     if p.status == "refunded":
         raise HTTPException(400, "Payment already refunded")
     p.status = "refunded"
-    p.updated_at = datetime.utcnow()
+    p.updated_at = datetime.now(timezone.utc)
     db.commit()
     return {"message": "Payment refunded", "payment_number": p.payment_number}
 

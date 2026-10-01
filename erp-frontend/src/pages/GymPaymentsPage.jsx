@@ -249,12 +249,12 @@ export default function GymPaymentsPage() {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
           @page {
-            size: 80mm auto !important;
+            size: 80mm 200mm !important;
             margin: 0 !important;
           }
           @media print {
             @page {
-              size: 80mm auto !important;
+              size: 80mm 200mm !important;
               margin: 0 !important;
             }
             * {
@@ -274,12 +274,12 @@ export default function GymPaymentsPage() {
               min-width: 80mm !important;
               max-width: 80mm !important;
               margin: 0 !important;
-              padding: 3mm !important;
+              padding: 2mm 3mm !important;
               background: #ffffff !important;
               color: #000000 !important;
               font-family: "Courier New", Courier, monospace !important;
-              font-size: 10.5px !important;
-              line-height: 1.35 !important;
+              font-size: 12px !important;
+              line-height: 1.3 !important;
               box-sizing: border-box !important;
               overflow: visible !important;
             }
@@ -299,11 +299,11 @@ export default function GymPaymentsPage() {
             min-width: 80mm;
             max-width: 80mm;
             margin: 0 auto;
-            padding: 3mm;
+            padding: 2mm 3mm;
             background: white;
             box-sizing: border-box;
-            font-size: 10.5px;
-            line-height: 1.35;
+            font-size: 12px;
+            line-height: 1.3;
           }
           .logo {
             text-align: center;
@@ -316,26 +316,26 @@ export default function GymPaymentsPage() {
           }
           .business-name {
             text-align: center;
-            font-size: 14px;
+            font-size: 20px;
             font-weight: bold;
             margin: 1px 0;
             text-transform: uppercase;
           }
           .receipt-title {
             text-align: center;
-            font-size: 12px;
+            font-size: 18px;
             font-weight: bold;
             margin: 1px 0;
             text-transform: uppercase;
           }
           .receipt-number {
             text-align: center;
-            font-size: 9px;
+            font-size: 13px;
             margin: 1px 0;
           }
           .contact-info {
             text-align: center;
-            font-size: 9px;
+            font-size: 12px;
             margin: 2px 0;
             line-height: 1.2;
           }
@@ -344,7 +344,7 @@ export default function GymPaymentsPage() {
             margin: 3px 0;
           }
           .section-title {
-            font-size: 11px;
+            font-size: 13px;
             font-weight: bold;
             margin: 2px 0 2px 0;
             text-transform: uppercase;
@@ -353,33 +353,33 @@ export default function GymPaymentsPage() {
             display: flex;
             justify-content: space-between;
             margin: 1px 0;
-            line-height: 1.35;
+            line-height: 1.3;
           }
           .row span:first-child {
             font-weight: 600;
-            font-size: 10.5px;
+            font-size: 13px;
             overflow-wrap: anywhere;
             word-break: break-word;
           }
           .row span:last-child {
             text-align: right;
-            font-size: 10.5px;
+            font-size: 13px;
             flex-shrink: 0;
           }
           .amount-row {
             display: flex;
             justify-content: space-between;
             margin: 1px 0;
-            line-height: 1.35;
+            line-height: 1.3;
           }
           .amount-row span:first-child {
-            font-size: 10.5px;
+            font-size: 13px;
             overflow-wrap: anywhere;
             word-break: break-word;
           }
           .amount-row span:last-child {
             font-weight: bold;
-            font-size: 10.5px;
+            font-size: 13px;
             flex-shrink: 0;
           }
           .total-row {
@@ -388,13 +388,13 @@ export default function GymPaymentsPage() {
             margin: 3px 0;
             padding-top: 2px;
             border-top: 2px solid #000000;
-            font-size: 12px;
+            font-size: 18px;
             font-weight: bold;
           }
           .footer {
             text-align: center;
             margin-top: 4px;
-            font-size: 9px;
+            font-size: 12px;
             line-height: 1.2;
           }
           .footer p {

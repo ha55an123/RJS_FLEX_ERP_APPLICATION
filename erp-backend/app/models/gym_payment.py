@@ -4,7 +4,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from app.core.database import Base
-from datetime import datetime
+from datetime import datetime, timezone
 import enum
 
 
@@ -58,8 +58,8 @@ class GymPayment(Base):
 
     notes               = Column(Text, nullable=True)
     received_by         = Column(Integer, ForeignKey("users.id"), nullable=True)
-    created_at          = Column(DateTime, default=datetime.utcnow)
-    updated_at          = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at          = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at          = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     member              = relationship("GymMember")
     subscription        = relationship("MembershipSubscription")

@@ -10,16 +10,25 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '20261003_add_biometric_registrations'
-down_revision = None  # Set this to the previous migration ID if needed
+revision = 'j4k5l6m7n8o9'
+down_revision = 'i3j4k5l6m7n8'
 branch_labels = None
 depends_on = None
 
 
 def upgrade():
-    # Add capability flags to biometric_devices table
-    op.add_column('biometric_devices', sa.Column('supports_fingerprint', sa.Boolean(), nullable=False, server_default='true'))
-    op.add_column('biometric_devices', sa.Column('supports_face', sa.Boolean(), nullable=False, server_default='false'))
+    # Add capability flags to biometric_devices table (idempotent)
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    
+    # Check if columns exist before adding
+    columns = [col['name'] for col in inspector.get_columns('biometric_devices')]
+    
+    if 'supports_fingerprint' not in columns:
+        op.add_column('biometric_devices', sa.Column('supports_fingerprint', sa.Boolean(), nullable=False, server_default='true'))
+    
+    if 'supports_face' not in columns:
+        op.add_column('biometric_devices', sa.Column('supports_face', sa.Boolean(), nullable=False, server_default='false'))
     
     # Create biometric_registrations table
     op.create_table(
@@ -54,6 +63,13 @@ def downgrade():
     op.drop_index(op.f('ix_biometric_registrations_device_id'), table_name='biometric_registrations')
     op.drop_table('biometric_registrations')
     
-    # Remove capability flags from biometric_devices table
-    op.drop_column('biometric_devices', 'supports_face')
-    op.drop_column('biometric_devices', 'supports_fingerprint')
+    # Remove capability flags from biometric_devices table (idempotent)
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    columns = [col['name'] for col in inspector.get_columns('biometric_devices')]
+    
+    if 'supports_face' in columns:
+        op.drop_column('biometric_devices', 'supports_face')
+    
+    if 'supports_fingerprint' in columns:
+        op.drop_column('biometric_devices', 'supports_fingerprint')

@@ -106,48 +106,63 @@ function BiometricDevicesPage() {
     try {
       if (editingDevice) {
         await biometricAPI.update(editingDevice.id, {
-          ip_address: formData.ip_address,
-          port: Number(formData.port),
-          protocol: formData.protocol === 'tcp' ? 'tcp_ip' : formData.protocol,
-        });
-        setStatus({ type: 'success', message: 'Device updated successfully' });
-      } else {
-        await biometricAPI.create({
-          branch_id: Number(formData.branch_id),
-          device_name: formData.name,
-          device_uid: formData.serial_number,
-          brand: formData.brand || 'Other',
-          model: formData.model || null,
-          serial_number: formData.serial_number || null,
           ip_address: formData.ip_address || null,
           port: Number(formData.port) || 4370,
-          protocol: formData.protocol,
-          sync_interval: '5min',
-          notes: formData.location || null,
-          is_active: true,
-          supports_fingerprint: formData.supports_fingerprint,
-          supports_face: formData.supports_face,
+          protocol: formData.protocol === 'tcp' ? 'tcp_ip' : formData.protocol,
+          supports_fingerprint: Boolean(formData.supports_fingerprint),
+          supports_face: Boolean(formData.supports_face),
         });
-        setStatus({ type: 'success', message: 'Device created successfully' });
-        // Only close modal and reset form on success
+
+        setStatus({
+          type: 'success',
+          message: 'Device updated successfully',
+        });
+
+        // Close edit modal and clear edit state
         setShowModal(false);
         setEditingDevice(null);
-        setFormData({
-          name: '',
-          device_type: 'fingerprint',
-          brand: '',
-          model: '',
-          serial_number: '',
-          ip_address: '',
-          port: '',
-          branch_id: '',
-          location: '',
-          protocol: 'tcp_ip',
-          supports_fingerprint: true,
-          supports_face: false,
-        });
+
+        // Reload devices so the UI shows the saved values
         await loadData();
+
+        return;
       }
+
+      await biometricAPI.create({
+        branch_id: Number(formData.branch_id),
+        device_name: formData.name,
+        device_uid: formData.serial_number,
+        brand: formData.brand || 'Other',
+        model: formData.model || null,
+        serial_number: formData.serial_number || null,
+        ip_address: formData.ip_address || null,
+        port: Number(formData.port) || 4370,
+        protocol: formData.protocol,
+        sync_interval: '5min',
+        notes: formData.location || null,
+        is_active: true,
+        supports_fingerprint: formData.supports_fingerprint,
+        supports_face: formData.supports_face,
+      });
+      setStatus({ type: 'success', message: 'Device created successfully' });
+      // Only close modal and reset form on success
+      setShowModal(false);
+      setEditingDevice(null);
+      setFormData({
+        name: '',
+        device_type: 'fingerprint',
+        brand: '',
+        model: '',
+        serial_number: '',
+        ip_address: '',
+        port: '',
+        branch_id: '',
+        location: '',
+        protocol: 'tcp_ip',
+        supports_fingerprint: true,
+        supports_face: false,
+      });
+      await loadData();
     } catch (error) {
       console.error('Failed to save device:', error);
       let errorMessage = 'Failed to save device';
@@ -180,10 +195,12 @@ function BiometricDevicesPage() {
       model: device.model || '',
       serial_number: device.serial_number || '',
       ip_address: device.ip_address || '',
-      port: device.port || 0,
+      port: device.port || 4370,
       branch_id: device.branch_id || '',
       location: device.location || '',
       protocol: device.protocol || 'tcp_ip',
+      supports_fingerprint: device.supports_fingerprint ?? true,
+      supports_face: device.supports_face ?? false,
     });
     setShowModal(true);
   };

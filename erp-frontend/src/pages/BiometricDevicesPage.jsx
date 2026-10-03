@@ -61,6 +61,8 @@ function BiometricDevicesPage() {
     branch_id: '',
     location: '',
     protocol: 'tcp_ip',
+    supports_fingerprint: true,
+    supports_face: false,
   });
 
   useEffect(() => {
@@ -123,6 +125,8 @@ function BiometricDevicesPage() {
           sync_interval: '5min',
           notes: formData.location || null,
           is_active: true,
+          supports_fingerprint: formData.supports_fingerprint,
+          supports_face: formData.supports_face,
         });
         setStatus({ type: 'success', message: 'Device created successfully' });
         // Only close modal and reset form on success
@@ -139,6 +143,8 @@ function BiometricDevicesPage() {
           branch_id: '',
           location: '',
           protocol: 'tcp_ip',
+          supports_fingerprint: true,
+          supports_face: false,
         });
         await loadData();
       }
@@ -268,6 +274,7 @@ function BiometricDevicesPage() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Brand/Model</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">IP Address</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Branch</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Capabilities</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sync Status</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
             </tr>
@@ -280,6 +287,19 @@ function BiometricDevicesPage() {
                 <td className="px-6 py-4 whitespace-nowrap">{device.brand || ''} {device.model || ''}</td>
                 <td className="px-6 py-4 whitespace-nowrap">{device.ip_address || '-'}:{device.port || '-'}</td>
                 <td className="px-6 py-4 whitespace-nowrap">{device.branch_name || '-'}</td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex flex-col gap-1 text-xs">
+                    {device.supports_fingerprint && (
+                      <span className="text-green-600">✓ Fingerprint</span>
+                    )}
+                    {device.supports_face && (
+                      <span className="text-blue-600">✓ Face</span>
+                    )}
+                    {!device.supports_fingerprint && !device.supports_face && (
+                      <span className="text-gray-400">None</span>
+                    )}
+                  </div>
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center gap-2">
                     {device.connection_status === 'online' ? (
@@ -480,6 +500,33 @@ function BiometricDevicesPage() {
                     <option value="csv">CSV</option>
                     <option value="excel">Excel</option>
                   </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Biometric Capabilities</label>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={formData.supports_fingerprint}
+                        onChange={(e) => setFormData({...formData, supports_fingerprint: e.target.checked})}
+                        className="rounded"
+                      />
+                      <span className="text-sm">Fingerprint Support</span>
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={formData.supports_face}
+                        onChange={(e) => setFormData({...formData, supports_face: e.target.checked})}
+                        className="rounded"
+                      />
+                      <span className="text-sm">Face Recognition Support</span>
+                    </label>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Select the biometric methods this device supports. This will be validated during enrollment.
+                  </p>
                 </div>
               </div>
 

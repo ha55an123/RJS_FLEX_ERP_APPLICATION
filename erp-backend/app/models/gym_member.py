@@ -95,6 +95,7 @@ class GymMember(Base):
     assigned_trainer    = relationship("GymStaff", foreign_keys=[assigned_trainer_id])
     memberships         = relationship("MembershipSubscription", back_populates="member")
     attendance_records  = relationship("GymAttendance", back_populates="member")
+    biometric_registrations = relationship("BiometricRegistration", back_populates="member")
 
     @property
     def full_name(self):

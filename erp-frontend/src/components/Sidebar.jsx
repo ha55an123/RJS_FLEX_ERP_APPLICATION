@@ -17,7 +17,7 @@ const allLinks = [
   
   // ── Attendance ──
   { to: '/gym-attendance',         label: 'Attendance',         icon: Calendar,        roles: ['super_admin', 'gym_owner', 'manager', 'receptionist'], section: 'Attendance' },
-  { to: '/face-attendance',       label: 'Face Attendance',    icon: Fingerprint,    roles: ['super_admin', 'gym_owner', 'manager', 'receptionist'], section: 'Attendance' },
+  { to: '/fingerprint-attendance', label: 'Fingerprint Scan',   icon: Fingerprint,    roles: ['super_admin', 'gym_owner', 'manager', 'receptionist'], section: 'Attendance' },
   { to: '/face-registration',     label: 'Face Registration',  icon: UserCog,         roles: ['super_admin', 'gym_owner', 'manager', 'receptionist'], section: 'Attendance' },
   { to: '/biometric-devices',      label: 'Biometric Devices',  icon: Fingerprint,    roles: ['super_admin', 'gym_owner', 'manager'], section: 'Attendance' },
   

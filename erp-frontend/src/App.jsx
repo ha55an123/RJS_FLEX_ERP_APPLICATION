@@ -46,6 +46,7 @@ import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
 import FaceRegistrationPage from './pages/FaceRegistrationPage';
 import FaceAttendancePage from './pages/FaceAttendancePage';
+import FingerprintAttendancePage from './pages/FingerprintAttendancePage';
 
 
 export default function App() {
@@ -106,6 +107,9 @@ export default function App() {
             } />
             <Route path="/face-attendance" element={
               <ProtectedRoute roles={['super_admin', 'gym_owner', 'manager', 'receptionist']}><FaceAttendancePage /></ProtectedRoute>
+            } />
+            <Route path="/fingerprint-attendance" element={
+              <ProtectedRoute roles={['super_admin', 'gym_owner', 'manager', 'receptionist']}><FingerprintAttendancePage /></ProtectedRoute>
             } />
 
             {/* Legacy Routes (Preserved) */}

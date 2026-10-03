@@ -21,6 +21,7 @@ from app.models.gym_staff import GymStaff
 from app.models.membership import MembershipSubscription, MembershipPlan
 from app.models.gym_attendance import GymAttendance
 from app.models.biometric_device import BiometricDevice
+from app.models.biometric_registration import BiometricRegistration
 from app.models.workout import WorkoutPlan, MemberWorkoutPlan, WorkoutProgress
 from app.models.diet import MealPlan, MemberDietPlan, NutritionLog
 from app.models.gym_equipment import GymEquipment
@@ -36,7 +37,7 @@ __all__ = [
     'User', 'otp', 'device', 'audit_log', 'order', 'invoice', 'purchase',
     'attendance_payroll', 'production_payroll', 'accounting', 'employee',
     'Branch', 'GymMember', 'GymStaff', 'MembershipSubscription', 'MembershipPlan',
-    'GymAttendance', 'BiometricDevice', 'WorkoutPlan', 'MemberWorkoutPlan', 'WorkoutProgress',
+    'GymAttendance', 'BiometricDevice', 'BiometricRegistration', 'WorkoutPlan', 'MemberWorkoutPlan', 'WorkoutProgress',
     'MealPlan', 'MemberDietPlan', 'NutritionLog', 'GymEquipment', 'GymInventoryItem',
     'GymPayment', 'Discount', 'Outlet', 'LoginAuditLog', 'TokenBlacklist',
     'FaceBiometric', 'FaceRecognitionLog',

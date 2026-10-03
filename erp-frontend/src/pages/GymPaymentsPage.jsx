@@ -112,8 +112,9 @@ export default function GymPaymentsPage() {
       setFormError('Discount cannot be negative.');
       return;
     }
-    if (Number(formData.discount_amount) > Number(formData.amount)) {
-      setFormError('Discount cannot be greater than the payment amount.');
+    const subtotal = Number(formData.amount) + Number(formData.registration_fee);
+    if (Number(formData.discount_amount) > subtotal) {
+      setFormError('Discount cannot be greater than the subtotal.');
       return;
     }
 
@@ -249,12 +250,12 @@ export default function GymPaymentsPage() {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
           @page {
-            size: 80mm 200mm !important;
+            size: 80mm auto !important;
             margin: 0 !important;
           }
           @media print {
             @page {
-              size: 80mm 200mm !important;
+              size: 80mm auto !important;
               margin: 0 !important;
             }
             * {
@@ -282,6 +283,8 @@ export default function GymPaymentsPage() {
               line-height: 1.3 !important;
               box-sizing: border-box !important;
               overflow: visible !important;
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
             }
           }
           html {
@@ -456,7 +459,7 @@ export default function GymPaymentsPage() {
     return matchesSearch && matchesStatus;
   });
 
-  const totalAmount = filteredPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+  const totalAmount = filteredPayments.reduce((sum, p) => sum + (p.total_amount || 0), 0);
 
   if (loading) return <div className="page-loading">Loading payments...</div>;
 
@@ -533,7 +536,7 @@ export default function GymPaymentsPage() {
                 </td>
                 <td className="capitalize">{payment.payment_type || '-'}</td>
                 <td className="capitalize">{payment.payment_method || '-'}</td>
-                <td>PKR {(payment.amount || 0).toLocaleString()}</td>
+                <td>PKR {(payment.total_amount || 0).toLocaleString()}</td>
                 <td>
                   <span className={`status-badge ${
                     payment.status === 'paid' ? 'success' :

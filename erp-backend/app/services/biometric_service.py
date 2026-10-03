@@ -94,17 +94,17 @@ class BiometricDeviceInterface(ABC):
 
 
 class ZKTecoDevice(BiometricDeviceInterface):
-    """ZKTeco device implementation using TCP/IP protocol"""
+    """ZKTeco device implementation using TCP/IP protocol with zklib"""
 
     def __init__(self, ip_address: str, port: int, device_id: int):
         super().__init__(ip_address, port, device_id)
-        self.socket = None
+        self.zk = None
 
     def connect(self) -> bool:
         try:
-            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.socket.settimeout(10)
-            self.socket.connect((self.ip_address, self.port))
+            from zk import ZK
+            self.zk = ZK(self.ip_address, port=self.port, timeout=10, password=0, force_udp=False, ommit_ping=False)
+            self.zk.connect()
             self.is_connected = True
             logger.info(f"Connected to ZKTeco device at {self.ip_address}:{self.port}")
             return True
@@ -113,82 +113,193 @@ class ZKTecoDevice(BiometricDeviceInterface):
             return False
 
     def disconnect(self) -> None:
-        if self.socket:
-            self.socket.close()
-            self.is_connected = False
-            logger.info(f"Disconnected from ZKTeco device at {self.ip_address}:{self.port}")
+        if self.zk and self.is_connected:
+            try:
+                self.zk.disconnect()
+                self.is_connected = False
+                logger.info(f"Disconnected from ZKTeco device at {self.ip_address}:{self.port}")
+            except Exception as e:
+                logger.error(f"Error disconnecting from ZKTeco device: {e}")
 
     def test_connection(self) -> Tuple[bool, str]:
         if not self.is_connected:
             if not self.connect():
                 return False, "Connection failed"
         try:
-            # Send a simple command to test connectivity
-            # In real implementation, this would use ZKTeco SDK protocol
-            self.disconnect()
-            return True, "Device is responsive"
+            # Get device info to test connectivity
+            device_info = self.get_device_info()
+            if device_info.get('serial'):
+                self.disconnect()
+                return True, "Device is responsive"
+            return False, "Device not responding properly"
         except Exception as e:
+            self.disconnect()
             return False, str(e)
 
     def get_attendance_logs(self, start_date: datetime, end_date: datetime) -> List[AttendanceRecord]:
         """Fetch attendance logs using ZKTeco protocol"""
         if not self.is_connected:
-            self.connect()
+            if not self.connect():
+                return []
         
-        # Placeholder: In real implementation, use ZKTeco SDK
-        # This would involve sending specific protocol commands to fetch logs
-        logger.info(f"Fetching attendance logs from ZKTeco device {self.device_id}")
-        return []
+        try:
+            attendance = self.zk.get_attendance()
+            logs = []
+            
+            for record in attendance:
+                record_time = datetime.strptime(str(record.timestamp), '%Y-%m-%d %H:%M:%S')
+                
+                # Filter by date range
+                if start_date <= record_time <= end_date:
+                    logs.append(AttendanceRecord(
+                        user_id=str(record.user_id),
+                        timestamp=record_time,
+                        device_id=self.device_id,
+                        verification_mode=self._map_verification_mode(record.punch),
+                        status=self._map_punch_status(record.punch)
+                    ))
+            
+            logger.info(f"Fetched {len(logs)} attendance logs from ZKTeco device {self.device_id}")
+            return logs
+        except Exception as e:
+            logger.error(f"Failed to fetch attendance logs: {e}")
+            return []
+        finally:
+            self.disconnect()
 
     def get_users(self) -> List[DeviceUser]:
         """Fetch enrolled users from ZKTeco device"""
         if not self.is_connected:
-            self.connect()
+            if not self.connect():
+                return []
         
-        # Placeholder: Use ZKTeco SDK to get user list
-        logger.info(f"Fetching users from ZKTeco device {self.device_id}")
-        return []
+        try:
+            users = self.zk.get_users()
+            device_users = []
+            
+            for user in users:
+                device_users.append(DeviceUser(
+                    user_id=str(user.user_id),
+                    name=user.name,
+                    privilege=user.privilege
+                ))
+            
+            logger.info(f"Fetched {len(device_users)} users from ZKTeco device {self.device_id}")
+            return device_users
+        except Exception as e:
+            logger.error(f"Failed to fetch users: {e}")
+            return []
+        finally:
+            self.disconnect()
 
     def enroll_user(self, user: DeviceUser) -> Tuple[bool, str]:
-        """Enroll user on ZKTeco device"""
+        """Enroll user on ZKTeco device with fingerprint"""
         if not self.is_connected:
-            self.connect()
+            if not self.connect():
+                return False, "Failed to connect to device"
         
-        # Placeholder: Use ZKTeco SDK to enroll user with fingerprint/face
-        logger.info(f"Enrolling user {user.user_id} on ZKTeco device {self.device_id}")
-        return True, "User enrolled successfully"
+        try:
+            # Check if user already exists
+            existing_users = self.zk.get_users()
+            for existing in existing_users:
+                if str(existing.user_id) == user.user_id:
+                    # Delete existing user to re-enroll
+                    self.zk.delete_user(user_id=int(user.user_id))
+                    logger.info(f"Deleted existing user {user.user_id} for re-enrollment")
+                    break
+            
+            # Create user on device
+            self.zk.set_user(
+                uid=int(user.user_id),
+                name=user.name[:24],  # ZKTeco limits name to 24 chars
+                privilege=user.privilege,
+                user_id=int(user.user_id),
+                card=user.card_number if user.card_number else 0
+            )
+            
+            # Note: Fingerprint template enrollment requires physical interaction
+            # with the device. The actual fingerprint capture happens on the device.
+            # This API call creates the user record on the device.
+            # The fingerprint enrollment is done by placing the finger on the device.
+            
+            logger.info(f"User {user.user_id} created on ZKTeco device {self.device_id}")
+            self.disconnect()
+            return True, "User created successfully. Please place finger on device to enroll fingerprint."
+        except Exception as e:
+            logger.error(f"Failed to enroll user: {e}")
+            self.disconnect()
+            return False, str(e)
 
     def delete_user(self, user_id: str) -> Tuple[bool, str]:
         """Delete user from ZKTeco device"""
         if not self.is_connected:
-            self.connect()
+            if not self.connect():
+                return False, "Failed to connect to device"
         
-        # Placeholder: Use ZKTeco SDK to delete user
-        logger.info(f"Deleting user {user_id} from ZKTeco device {self.device_id}")
-        return True, "User deleted successfully"
+        try:
+            self.zk.delete_user(user_id=int(user_id))
+            logger.info(f"User {user_id} deleted from ZKTeco device {self.device_id}")
+            self.disconnect()
+            return True, "User deleted successfully"
+        except Exception as e:
+            logger.error(f"Failed to delete user: {e}")
+            self.disconnect()
+            return False, str(e)
 
     def clear_attendance_logs(self) -> Tuple[bool, str]:
         """Clear attendance logs from ZKTeco device"""
         if not self.is_connected:
-            self.connect()
+            if not self.connect():
+                return False, "Failed to connect to device"
         
-        # Placeholder: Use ZKTeco SDK to clear logs
-        logger.info(f"Clearing attendance logs from ZKTeco device {self.device_id}")
-        return True, "Logs cleared successfully"
+        try:
+            self.zk.clear_attendance()
+            logger.info(f"Attendance logs cleared from ZKTeco device {self.device_id}")
+            self.disconnect()
+            return True, "Logs cleared successfully"
+        except Exception as e:
+            logger.error(f"Failed to clear logs: {e}")
+            self.disconnect()
+            return False, str(e)
 
     def get_device_info(self) -> Dict:
         """Get ZKTeco device information"""
         if not self.is_connected:
-            self.connect()
+            if not self.connect():
+                return {}
         
-        # Placeholder: Use ZKTeco SDK to get device info
-        return {
-            "brand": "ZKTeco",
-            "serial": "ZK123456",
-            "firmware": "Ver 6.60",
-            "ip_address": self.ip_address,
-            "port": self.port
-        }
+        try:
+            return {
+                "brand": "ZKTeco",
+                "serial": self.zk.get_serial_number(),
+                "firmware": self.zk.get_firmware_version(),
+                "ip_address": self.ip_address,
+                "port": self.port,
+                "device_name": self.zk.get_device_name()
+            }
+        except Exception as e:
+            logger.error(f"Failed to get device info: {e}")
+            return {}
+        finally:
+            self.disconnect()
+
+    def _map_verification_mode(self, punch: int) -> str:
+        """Map ZKTeco punch code to verification mode"""
+        # ZKTeco punch codes: 0=fingerprint, 1=face, 2=card, 3=password
+        if punch == 0:
+            return "fingerprint"
+        elif punch == 1:
+            return "face"
+        elif punch == 2:
+            return "card"
+        elif punch == 3:
+            return "password"
+        return "unknown"
+
+    def _map_punch_status(self, punch: int) -> str:
+        """Map ZKTeco punch code to attendance status"""
+        # This is a simplified mapping - actual implementation may need refinement
+        return "check_in"
 
 
 class ESSLDevice(BiometricDeviceInterface):

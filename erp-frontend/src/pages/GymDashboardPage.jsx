@@ -294,7 +294,13 @@ export default function GymDashboardPage() {
               border: '1px solid rgba(234,179,8,0.2)',
               boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
               transition: 'all 0.3s ease',
-              cursor: 'default'
+              cursor: 'default',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              padding: '1.25rem 1rem',
+              minHeight: '140px',
+              justifyContent: 'center'
             }}
             onMouseEnter={(e) => {
               e.target.style.transform = 'translateY(-4px)';
@@ -309,14 +315,31 @@ export default function GymDashboardPage() {
           >
             <div className="kpi-icon" style={{
               background: stat.bg,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+              boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+              width: '56px',
+              height: '56px',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '0.75rem'
             }}>
-              <stat.icon size={24} color={stat.color} />
+              <stat.icon size={28} color={stat.color} />
             </div>
-            <div>
-              <p className="kpi-label" style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)', marginBottom: '0.25rem' }}>{stat.label}</p>
-              <p className="kpi-value" style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#fff' }}>{stat.value}</p>
-            </div>
+            <p className="kpi-label" style={{ 
+              fontSize: '0.85rem', 
+              color: 'rgba(255,255,255,0.7)', 
+              marginBottom: '0.5rem',
+              textAlign: 'center',
+              fontWeight: '500'
+            }}>{stat.label}</p>
+            <p className="kpi-value" style={{ 
+              fontSize: '1.75rem', 
+              fontWeight: 'bold', 
+              color: '#fff',
+              textAlign: 'center',
+              lineHeight: '1.2'
+            }}>{stat.value}</p>
           </div>
         ))}
       </div>

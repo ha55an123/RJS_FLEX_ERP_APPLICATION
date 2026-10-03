@@ -35,6 +35,8 @@ class DeviceCreate(BaseModel):
     sync_interval: SyncInterval = SyncInterval.EVERY_5MIN
     notes: Optional[str] = None
     is_active: bool = True
+    supports_fingerprint: bool = True
+    supports_face: bool = False
 
 
 class DeviceUpdate(BaseModel):
@@ -46,6 +48,8 @@ class DeviceUpdate(BaseModel):
     firmware_version: Optional[str] = None
     notes: Optional[str] = None
     is_active: Optional[bool] = None
+    supports_fingerprint: Optional[bool] = None
+    supports_face: Optional[bool] = None
 
 
 def _serialize(d: BiometricDevice) -> dict:
@@ -59,6 +63,8 @@ def _serialize(d: BiometricDevice) -> dict:
         "connection_status": d.connection_status,
         "last_sync_at": d.last_sync_at, "last_heartbeat": d.last_heartbeat,
         "is_active": d.is_active, "notes": d.notes,
+        "supports_fingerprint": d.supports_fingerprint,
+        "supports_face": d.supports_face,
         "created_at": d.created_at, "updated_at": d.updated_at,
     }
 

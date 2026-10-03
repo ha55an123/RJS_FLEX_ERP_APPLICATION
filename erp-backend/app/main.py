@@ -26,6 +26,7 @@ from app.models import gym_staff       # noqa: F401
 from app.models import membership      # noqa: F401
 from app.models import gym_attendance  # noqa: F401
 from app.models import biometric_device  # noqa: F401
+from app.models import biometric_registration  # noqa: F401
 from app.models import workout         # noqa: F401
 from app.models import diet            # noqa: F401
 from app.models import gym_equipment   # noqa: F401
@@ -58,6 +59,7 @@ from app.routers.gym import (
     gym_staff as staff_router,
     gym_attendance as attendance_router,
     biometric_devices,
+    biometric_registrations,
     workouts,
     diet as diet_router,
     equipment,
@@ -66,6 +68,7 @@ from app.routers.gym import (
     discounts,
     reports,
     face_biometrics,
+    fingerprint_attendance,
 )
 
 Base.metadata.create_all(bind=engine)
@@ -160,6 +163,7 @@ app.include_router(memberships.router,     prefix=V1)
 app.include_router(staff_router.router,    prefix=V1)
 app.include_router(attendance_router.router, prefix=V1)
 app.include_router(biometric_devices.router, prefix=V1)
+app.include_router(biometric_registrations.router, prefix=V1)
 app.include_router(workouts.router,        prefix=V1)
 app.include_router(diet_router.router,     prefix=V1)
 app.include_router(equipment.router,       prefix=V1)
@@ -168,6 +172,7 @@ app.include_router(gym_payments.router,    prefix=V1)
 app.include_router(discounts.router,       prefix=V1)
 app.include_router(reports.router,         prefix=V1)
 app.include_router(face_biometrics.router, prefix=V1)
+app.include_router(fingerprint_attendance.router, prefix=V1)
 
 
 @app.get("/")

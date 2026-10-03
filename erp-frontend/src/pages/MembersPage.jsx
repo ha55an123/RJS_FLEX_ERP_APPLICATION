@@ -3,10 +3,11 @@ import { membersAPI } from '../api/gym/members';
 import { branchesAPI } from '../api/gym/branches';
 import { workoutsAPI } from '../api/gym/workouts';
 import { dietAPI } from '../api/gym/diet';
-import faceBiometricsAPI from '../api/gym/faceBiometrics';
+import { biometricRegistrationsAPI } from '../api/gym/biometricRegistrations';
 import api from '../api/axios';
 import { Plus, Search, Edit, Trash2, Fingerprint, User, Dumbbell, Apple, Eye } from 'lucide-react';
 import Toast from '../components/Toast';
+import BiometricRegistrationModal from '../components/BiometricRegistrationModal';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -53,6 +54,8 @@ export default function MembersPage() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [memberWorkout, setMemberWorkout] = useState(null);
   const [memberDiet, setMemberDiet] = useState(null);
+  const [showBiometricModal, setShowBiometricModal] = useState(false);
+  const [biometricMember, setBiometricMember] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -73,10 +76,10 @@ export default function MembersPage() {
       const statuses = {};
       for (const member of membersRes.data?.items || []) {
         try {
-          const { data } = await faceBiometricsAPI.getStatus(member.id);
+          const { data } = await biometricRegistrationsAPI.getMemberStatus(member.id);
           statuses[member.id] = data;
         } catch (error) {
-          statuses[member.id] = { has_biometric: false };
+          statuses[member.id] = { registrations: [] };
         }
       }
       setBiometricStatuses(statuses);
@@ -263,16 +266,20 @@ export default function MembersPage() {
     if (!window.confirm('Are you sure you want to delete this member?')) return;
     try {
       await membersAPI.delete(id);
-      setToast({ message: 'Member deleted', type: 'success' });
+      setToast({ message: 'Member deleted successfully', type: 'success' });
       loadData();
-      // Dispatch event to refresh dashboard
       window.dispatchEvent(new CustomEvent('memberDataChanged'));
     } catch (error) {
-      setToast({ message: error.response?.data?.detail || 'Failed to delete member', type: 'error' });
+      setToast({ message: 'Failed to delete member', type: 'error' });
     }
   };
 
-  const handleViewPlans = async (member) => {
+  const openBiometricModal = (member) => {
+    setBiometricMember(member);
+    setShowBiometricModal(true);
+  };
+
+  const openPlanModal = async (member) => {
     setSelectedMember(member);
     setMemberWorkout(null);
     setMemberDiet(null);
@@ -382,9 +389,9 @@ export default function MembersPage() {
                     </span>
                   </td>
                   <td>
-                    {bioStatus?.has_biometric ? (
+                    {bioStatus?.registrations && bioStatus.registrations.length > 0 ? (
                       <span className="text-green-600 flex items-center gap-1">
-                        <Fingerprint size={14} /> Registered
+                        <Fingerprint size={14} /> {bioStatus.registrations.length} Registered
                       </span>
                     ) : (
                       <span className="text-gray-400">Not registered</span>
@@ -401,9 +408,9 @@ export default function MembersPage() {
                         <Eye size={16} />
                       </button>
                       <button 
-                        onClick={() => navigate(`/face-registration`)} 
+                        onClick={() => openBiometricModal(member)} 
                         className="icon-btn" 
-                        title="Register Face"
+                        title="Register Biometric"
                       >
                         <Fingerprint size={16} />
                       </button>
@@ -736,6 +743,17 @@ export default function MembersPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {showBiometricModal && biometricMember && (
+        <BiometricRegistrationModal
+          member={biometricMember}
+          onClose={() => setShowBiometricModal(false)}
+          onSuccess={() => {
+            loadData();
+            setShowBiometricModal(false);
+          }}
+        />
       )}
     </div>
   );

@@ -74,6 +74,8 @@ class BiometricDevice(Base):
         SAEnum(DeviceStatus, values_callable=lambda x: [e.value for e in x]),
         nullable=False, default=DeviceStatus.OFFLINE.value
     )
+    supports_fingerprint = Column(Boolean, default=True, nullable=False)
+    supports_face = Column(Boolean, default=False, nullable=False)
     last_sync_at    = Column(DateTime, nullable=True)
     last_heartbeat  = Column(DateTime, nullable=True)
     is_active       = Column(Boolean, default=True)

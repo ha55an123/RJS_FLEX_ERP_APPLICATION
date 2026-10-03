@@ -140,9 +140,19 @@ def create_payment(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Member not found")
     if data.amount <= 0:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Amount must be greater than zero")
+    if data.discount_amount < 0:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Discount cannot be negative")
+    
+    # Calculate total amount with discount
+    subtotal = data.amount + data.tax_amount
+    if data.discount_amount > subtotal:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Discount cannot exceed the subtotal")
+    
+    total = round(subtotal - data.discount_amount, 2)
+    if total < 0:
+        total = 0
 
     payload = data.model_dump(exclude={"reference_number"})
-    total = round(data.amount + data.tax_amount - data.discount_amount, 2)
     payment = GymPayment(
         **payload,
         payment_number=_gen_payment_number(db),

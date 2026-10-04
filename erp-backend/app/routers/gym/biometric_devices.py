@@ -130,26 +130,47 @@ def update_device(
     device_id: int, data: DeviceUpdate,
     db: Session = Depends(get_db), _=Depends(require_role(MANAGER_ROLES))
 ):
+    logger.info(f"Updating device {device_id} with data: {data.model_dump(exclude_none=True)}")
     d = db.query(BiometricDevice).filter(BiometricDevice.id == device_id).first()
     if not d:
+        logger.warning(f"Device {device_id} not found for update")
         raise HTTPException(404, "Device not found")
-    for k, v in data.model_dump(exclude_none=True).items():
+
+    update_data = data.model_dump(exclude_none=True)
+    for k, v in update_data.items():
         setattr(d, k, v)
     d.updated_at = datetime.utcnow()
-    db.commit()
-    db.refresh(d)
-    return _serialize(d)
+
+    try:
+        db.commit()
+        db.refresh(d)
+        logger.info(f"Device {device_id} updated successfully in database")
+        return _serialize(d)
+    except Exception as e:
+        logger.error(f"Failed to commit device {device_id} update: {str(e)}")
+        db.rollback()
+        raise HTTPException(500, f"Failed to update device: {str(e)}")
 
 
 @router.delete("/{device_id}")
 def delete_device(device_id: int, db: Session = Depends(get_db), _=Depends(require_role(MANAGER_ROLES))):
+    logger.info(f"Soft-deleting device {device_id}")
     d = db.query(BiometricDevice).filter(BiometricDevice.id == device_id).first()
     if not d:
+        logger.warning(f"Device {device_id} not found for deletion")
         raise HTTPException(404, "Device not found")
+
     d.is_active = False
     d.updated_at = datetime.utcnow()
-    db.commit()
-    return {"message": "Device deactivated"}
+
+    try:
+        db.commit()
+        logger.info(f"Device {device_id} soft-deleted successfully (is_active=False)")
+        return {"message": "Device deactivated"}
+    except Exception as e:
+        logger.error(f"Failed to delete device {device_id}: {str(e)}")
+        db.rollback()
+        raise HTTPException(500, f"Failed to delete device: {str(e)}")
 
 
 @router.post("/{device_id}/sync")

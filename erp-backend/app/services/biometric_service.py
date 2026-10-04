@@ -102,14 +102,16 @@ class ZKTecoDevice(BiometricDeviceInterface):
 
     def connect(self) -> bool:
         try:
+            logger.info(f"Attempting to connect to ZKTeco device at {self.ip_address}:{self.port}")
             from zk import ZK
             self.zk = ZK(self.ip_address, port=self.port, timeout=10, password=0, force_udp=False, ommit_ping=False)
             self.zk.connect()
             self.is_connected = True
-            logger.info(f"Connected to ZKTeco device at {self.ip_address}:{self.port}")
+            logger.info(f"Successfully connected to ZKTeco device at {self.ip_address}:{self.port}")
             return True
         except Exception as e:
-            logger.error(f"Failed to connect to ZKTeco device: {e}")
+            logger.error(f"Failed to connect to ZKTeco device at {self.ip_address}:{self.port} - {str(e)}")
+            logger.error(f"Device connection error details: {type(e).__name__}")
             return False
 
     def disconnect(self) -> None:
@@ -122,17 +124,22 @@ class ZKTecoDevice(BiometricDeviceInterface):
                 logger.error(f"Error disconnecting from ZKTeco device: {e}")
 
     def test_connection(self) -> Tuple[bool, str]:
+        logger.info(f"Testing connection to ZKTeco device at {self.ip_address}:{self.port}")
         if not self.is_connected:
             if not self.connect():
+                logger.error(f"Device connection test failed for {self.ip_address}:{self.port}")
                 return False, "Connection failed"
         try:
             # Get device info to test connectivity
             device_info = self.get_device_info()
             if device_info.get('serial'):
                 self.disconnect()
+                logger.info(f"Device connection test successful for {self.ip_address}:{self.port}")
                 return True, "Device is responsive"
+            logger.warning(f"Device at {self.ip_address}:{self.port} responded but no serial number found")
             return False, "Device not responding properly"
         except Exception as e:
+            logger.error(f"Device connection test exception for {self.ip_address}:{self.port} - {str(e)}")
             self.disconnect()
             return False, str(e)
 
